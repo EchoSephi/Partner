@@ -1,0 +1,3 @@
+dotnet publish -c Release --runtime win10-x64
+
+    <RuntimeIdentifier>win10-x64</RuntimeIdentifier>
