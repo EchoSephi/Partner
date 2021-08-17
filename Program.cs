@@ -66,9 +66,9 @@ namespace Partner
             }
             else
             {
-                Console.WriteLine("Start");
-                await Start(ts);
-                // await Test(10);
+                // Console.WriteLine("Start");
+                // await Start(ts);
+                await Test(ts);
                 // TestSunTemp(ts);
             }
         }
@@ -163,7 +163,7 @@ namespace Partner
         }
         public static async Task Test(int ts)
         {
-            var Cases_Guid = Guid.Parse("124AC786-7E20-41B6-9F36-D38ECBDFA6BC");
+            var Cases_Guid = Guid.Parse("4F4A414D-5A04-40D6-993A-AE7FA8AD851B");
             int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
             var s1 = password + timeStamp;
             var token = Tool.MD5code(s1) + account;
