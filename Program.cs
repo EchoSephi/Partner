@@ -25,6 +25,7 @@ namespace Partner
         public static string url { get; set; }
         static async Task Main(string[] args)
         {
+
             connRoot = Tool.ReadFromAppSettings().Get<SolarModel>().Root;
             connSolar = Tool.ReadFromAppSettings().Get<SolarModel>().Solar;
             connIvt = Tool.ReadFromAppSettings().Get<SolarModel>().Ivt;
@@ -33,44 +34,24 @@ namespace Partner
             url = Tool.ReadFromAppSettings().Get<SolarModel>().url;
 
             int ts = 5;
-            string guid = "";
+
             if (args.Length == 0)
             {
                 ts = 5;
-                guid = "";
-            }
-            else if (args.Length == 1)
-            {
-                int num;
-                bool test = int.TryParse(args[0], out num);
-                ts = num;
-            }
-            else
-            {
-                int num;
-                bool test = int.TryParse(args[0], out num);
-                ts = num;
-
-                guid = args[1];
-                Console.WriteLine("取得 guid = " + guid);
             }
 
+            // for (int i = 0; i < (1 * 24); i++)
+            // {
+            // ts = 34;
             Console.WriteLine("取得 " + (ts + 1) + " 分鐘資料 ");
+            string guid = "E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6";
+            await Reload(guid, ts);
+            // }
 
-            if (guid != "")
-            {
-                for (int i = 0; i < 12; i++)
-                {
-                    await Reload(guid, ts);
-                }
-            }
-            else
-            {
-                // Console.WriteLine("Start");
-                // await Start(ts);
-                await Test(ts);
-                // TestSunTemp(ts);
-            }
+
+            // Console.WriteLine("Start");
+            // await Start(ts);
+
         }
 
         public static async Task Reload(string CasesGuid, int ts)
@@ -83,6 +64,7 @@ namespace Partner
             var q1 = await FetchCollectors(Cases_Guid);
             foreach (var p1 in q1)
             {
+
                 var CollectorId = p1.Guid;
                 var siteNo = p1.MacAddress;
                 var lt = p1.LastUploadTime;
@@ -112,6 +94,7 @@ namespace Partner
                 #endregion
 
                 #region 日照計
+                CS1("日照計");
                 var q3 = await FetchSunlightMeter(CollectorId);
                 if (q3 != null)
                 {
@@ -128,6 +111,7 @@ namespace Partner
                 #endregion
 
                 #region 環境溫度計
+                CS1("環境溫度計");
                 var q4 = await FetchTempSurface(CollectorId);
                 if (q4 != null)
                 {
@@ -143,6 +127,7 @@ namespace Partner
                 #endregion
 
                 #region 模組溫度計
+                CS1("模組溫度計");
                 var q5 = await FetchTempBack(CollectorId);
                 if (q5 != null)
                 {
@@ -156,98 +141,22 @@ namespace Partner
 
                 #endregion
 
-                Console.WriteLine("endDatetime :" + endDatetime);
-
-            }
-
-        }
-        public static async Task Test(int ts)
-        {
-            var Cases_Guid = Guid.Parse("4F4A414D-5A04-40D6-993A-AE7FA8AD851B");
-            int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
-            var s1 = password + timeStamp;
-            var token = Tool.MD5code(s1) + account;
-
-            // * 2.讀取db -- 最後更新時間
-            var q1 = await FetchCollectors(Cases_Guid);
-            foreach (var p1 in q1)
-            {
-                var CollectorId = p1.Guid;
-                var siteNo = p1.MacAddress;
-                var lt = p1.LastUploadTime;
-                // var lt = DateTime.Parse("2021-07-20 05:59");
-                var d = lt.AddMinutes(1);
-                var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
-                var endDatetime = d.AddMinutes(ts).ToString("yyyy-MM-dd HH:mm:ss");
-                var ds = d.ToString("yyyy-MM-dd HH:00:00");
-                var de = d.AddMinutes(ts).ToString("yyyy-MM-dd HH:59:00");
-
-                #region 逆變器
-                var q2 = await FetchInverters(CollectorId);
-                foreach (var p2 in q2)
+                #region 風速計
+                CS1("風速計");
+                var q6 = await FetchWind(CollectorId);
+                if (q6 != null)
                 {
-                    var dataNo = p2.SerialNumber;
-                    var Sort = p2.Sort;
-                    await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                }
-
-                // * 產生後台可以檢視的資料
-                await toDB2(lt, CollectorId, siteNo);
-
-                // * 寫入 PowerHour
-                await toDB3(CollectorId, ds, de);
-
-                await toDB4(CollectorId, d.ToString("yyyy-MM-dd"), endDatetime);
-                #endregion
-
-                #region 日照計
-                var q3 = await FetchSunlightMeter(CollectorId);
-                if (q3 != null)
-                {
-                    int i = 1;
-                    foreach (var p3 in q3)
+                    foreach (var p6 in q6)
                     {
-                        var dataNo = p3.SerialNumber;
-                        var Sort = p3.Sort;
-                        await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
-                        i++;
+                        var dataNo = p6.SerialNumber;
+                        var Sort = p6.Sort;
+                        await FetchWindPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
                     }
                 }
 
                 #endregion
-
-                #region 環境溫度計
-                var q4 = await FetchTempSurface(CollectorId);
-                if (q4 != null)
-                {
-                    foreach (var p4 in q4)
-                    {
-                        var dataNo = p4.SerialNumber;
-                        var Sort = p4.Sort;
-                        await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-
-                    }
-                }
-
-                #endregion
-
-                #region 模組溫度計
-                var q5 = await FetchTempBack(CollectorId);
-                if (q5 != null)
-                {
-                    foreach (var p5 in q5)
-                    {
-                        var dataNo = p5.SerialNumber;
-                        var Sort = p5.Sort;
-                        await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                    }
-                }
-
-                #endregion
-
                 Console.WriteLine("endDatetime :" + endDatetime);
             }
-
         }
 
         public static async Task TestSunTemp(int ts)
@@ -326,8 +235,7 @@ namespace Partner
 
                     await Task.Run(async () =>
                     {
-                        var s1 = string.Format("{0} 開始:{1}", p.Cases_Name, DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
-                        Console.WriteLine(s1);
+                        CS1(p.Cases_Name);
 
                         var CollectorId = p1.Guid;
                         var siteNo = p1.MacAddress;
@@ -406,16 +314,23 @@ namespace Partner
 
                         #endregion
 
-                        var s2 = string.Format("{0} 結束:{1}", p.Cases_Name, endDatetime);
-                        Console.WriteLine(s2);
+                        #region 風速計
+                        var q6 = await FetchWind(CollectorId);
+                        if (q6 != null)
+                        {
+                            foreach (var p6 in q6)
+                            {
+                                var dataNo = p6.SerialNumber;
+                                var Sort = p6.Sort;
+                                await FetchWindPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                            }
+                        }
+
+                        #endregion
                     });
                 }
 
             }
-
-            var s3 = string.Format("End:{0}", DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
-            Console.WriteLine(s3);
-
         }
 
         #region 逆變器
@@ -435,7 +350,7 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            Console.WriteLine("逆變器 dataNo: " + dataNo);
+            CS1("逆變器 dataNo: " + dataNo);
 
             try
             {
@@ -773,7 +688,7 @@ namespace Partner
                         b.UploadTime = DateTime.Parse(up);
                         l.Add(b);
                     }
-                    Console.WriteLine("逆變器 Post End");
+
                 }
                 // * 寫入db BillionwattsPower
                 await toDBIvtPower(l);
@@ -787,6 +702,7 @@ namespace Partner
 
         public static async Task toDBIvtPower(List<dtoBillionwattsPower> bsp)
         {
+            CS1("逆變器 toDBIvtPower");
             try
             {
                 using (var cn = new SqlConnection(connSolar))
@@ -805,87 +721,95 @@ namespace Partner
                 Console.WriteLine("toDBIvtPower :" + e.Message.ToString());
                 throw;
             }
-
         }
 
         public static async Task toDB2(DateTime dt, Guid CollectorId, string siteNo)
         {
+            CS1("逆變器 toDB2");
             var tbn = "ivtS_" + siteNo;
             var info = "";
-
-            using (var cn = new SqlConnection(connIvt))
+            try
             {
-                var d = dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                string str = string.Format("Execute SP_GetBillionwattsPowerRaw '{0}','{1}';", CollectorId.ToString(), d);
-                // var result = cn.Query<dtoIvt>(str).ToList();
-                var result1 = await cn.QueryAsync<dtoIvt>(str);
-                if (result1.FirstOrDefault() == null)
+                using (var cn = new SqlConnection(connIvt))
                 {
-                    return;
-                }
-
-                var result = result1.ToList();
-
-                var q = result.GroupBy(x => x.UploadTime, (u, s) => new
-                {
-                    UploadTime = u,
-                    MaxSort = s.Max(p => p.Sort)
-                });
-
-                Dictionary<string, dtoIvt> dict;
-                dict = result.ToDictionary(
-                                    o => string.Format("{0},{1}", o.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), o.Sort),
-                                    o => o);
-
-                foreach (var p in q)
-                {
-                    var d1 = p.UploadTime;
-                    var cnt = p.MaxSort;
-
-                    var SqlStr = "insert into " + tbn + " (UploadTime,info,";
-                    for (int i = 1; i < cnt + 1; i++)
+                    var d = dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                    string str = string.Format("Execute SP_GetBillionwattsPowerRaw '{0}','{1}';", CollectorId.ToString(), d);
+                    // var result = cn.Query<dtoIvt>(str).ToList();
+                    var result1 = await cn.QueryAsync<dtoIvt>(str);
+                    if (result1.FirstOrDefault() == null)
                     {
-                        SqlStr = SqlStr + "M" + i.ToString() + ",";
+                        return;
                     }
 
-                    SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
-                    SqlStr = SqlStr + ") values ('" + d1.ToString("yyyy-MM-dd HH:mm:ss.fff") + "','" + info + "',";
+                    var result = result1.ToList();
 
-                    for (int i = 1; i < p.MaxSort + 1; i++)
+                    var q = result.GroupBy(x => x.UploadTime, (u, s) => new
                     {
+                        UploadTime = u,
+                        MaxSort = s.Max(p => p.Sort)
+                    });
+
+                    Dictionary<string, dtoIvt> dict;
+                    dict = result.ToDictionary(
+                                        o => string.Format("{0},{1}", o.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), o.Sort),
+                                        o => o);
+
+                    foreach (var p in q)
+                    {
+                        var d1 = p.UploadTime;
+                        var cnt = p.MaxSort;
+
+                        var SqlStr = "insert into " + tbn + " (UploadTime,info,";
+                        for (int i = 1; i < cnt + 1; i++)
+                        {
+                            SqlStr = SqlStr + "M" + i.ToString() + ",";
+                        }
+
+                        SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
+                        SqlStr = SqlStr + ") values ('" + d1.ToString("yyyy-MM-dd HH:mm:ss.fff") + "','" + info + "',";
+
+                        for (int i = 1; i < p.MaxSort + 1; i++)
+                        {
+                            try
+                            {
+                                var Ac_Power = 0.0;
+                                var q1 = dict[string.Format("{0},{1}", d1.ToString("yyyy-MM-dd HH:mm:ss.fff"), i.ToString())];
+                                Ac_Power = double.Parse(q1.ACPower.ToString());
+                                SqlStr = SqlStr + Math.Round(Ac_Power, 2) + ",";
+                            }
+                            catch (Exception e)
+                            {
+                                var s = e.Message.ToString();
+                                SqlStr = SqlStr + "0,";
+                                // Console.WriteLine("toDB2 : i=" + i.ToString() + " , " + e.Message);
+                            }
+                        }
+
+                        SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
+                        SqlStr = SqlStr + ")";
+
                         try
                         {
-                            var Ac_Power = 0.0;
-                            var q1 = dict[string.Format("{0},{1}", d1.ToString("yyyy-MM-dd HH:mm:ss.fff"), i.ToString())];
-                            Ac_Power = double.Parse(q1.ACPower.ToString());
-                            SqlStr = SqlStr + Math.Round(Ac_Power, 2) + ",";
+                            await cn.ExecuteAsync(SqlStr);
                         }
-                        catch (Exception e)
+                        catch (System.Exception e)
                         {
-                            var s = e.Message.ToString();
-                            SqlStr = SqlStr + "0,";
-                            // Console.WriteLine("toDB2 : i=" + i.ToString() + " , " + e.Message);
+                            Console.WriteLine("toDB2 :" + e.Message.ToString());
+                            throw;
                         }
-                    }
-
-                    SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
-                    SqlStr = SqlStr + ")";
-
-                    try
-                    {
-                        await cn.ExecuteAsync(SqlStr);
-                    }
-                    catch (System.Exception e)
-                    {
-                        Console.WriteLine("toDB2 :" + e.Message.ToString());
-                        throw;
                     }
                 }
+
+            }
+            catch (System.Exception e2)
+            {
+                Console.WriteLine("toDB2-C :" + e2.Message.ToString());
             }
         }
 
         public static async Task toDB3(Guid CollectorId, string startDatetime, string endDatetime)
         {
+            CS1("逆變器 toDB3");
             var SqlStr = string.Format("Execute SP_PowertoHour '{0}' , '{1}' , '{2}' ; ", CollectorId.ToString(), startDatetime, endDatetime);
             using (var cn = new SqlConnection(connSolar))
             {
@@ -903,6 +827,7 @@ namespace Partner
 
         public static async Task toDB4(Guid CollectorId, string startDatetime, string endDatetime)
         {
+            CS1("逆變器 toDB4");
             var SqlStr = string.Format("Execute SP_GetCollectorDay '{0}' , '{1}' , '{2}' ;", CollectorId.ToString(), startDatetime, endDatetime);
             using (var cn = new SqlConnection(connRoot))
             {
@@ -1040,8 +965,7 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            Console.WriteLine("日照計 dataNo : " + dataNo);
-
+            CS1("日照計 dataNo: " + dataNo);
             try
             {
                 var l = new List<dtoSunlight>();
@@ -1078,7 +1002,6 @@ namespace Partner
                         }
                         l.Add(b);
                     }
-                    Console.WriteLine("日照計 Post End");
                 }
                 // * 寫入db
                 await toDBSunPower(l, times);
@@ -1098,10 +1021,10 @@ namespace Partner
                 {
                     foreach (var p in bsp)
                     {
-                        string insertQuery = @"INSERT INTO BillionwattsSunshine (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG) " +
-                        "VALUES (@Guid, @Collector_Guid, @UploadTime , @Sort, @TValues , @DEBUG )";
+                        // string insertQuery = @"INSERT INTO BillionwattsSunshine (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG) " +
+                        // "VALUES (@Guid, @Collector_Guid, @UploadTime , @Sort, @TValues , @DEBUG )";
 
-                        await cn.ExecuteAsync(insertQuery, p);
+                        // await cn.ExecuteAsync(insertQuery, p);
 
                         string updtaeQuery = "";
                         if (times == 1)
@@ -1171,8 +1094,7 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            Console.WriteLine("環境溫度計 dataNo: " + dataNo);
-
+            CS1("環境溫度計 dataNo: " + dataNo);
             try
             {
                 var l = new List<dtoTemperature>();
@@ -1188,6 +1110,13 @@ namespace Partner
                         if (p1.surfaceTemp != null)
                         {
                             surfaceTemp = double.Parse(p1.surfaceTemp);
+                        }
+                        else
+                        {
+                            if (p1.backTemp != null)
+                            {
+                                surfaceTemp = double.Parse(p1.backTemp);
+                            }
                         }
 
                         var up = p1.datatimeR;
@@ -1210,7 +1139,6 @@ namespace Partner
 
                         l.Add(b);
                     }
-                    Console.WriteLine("環境溫度計 Post End");
                 }
                 // * 寫入db
                 await toDBTemp(l);
@@ -1230,9 +1158,9 @@ namespace Partner
                 {
                     foreach (var p in bsp)
                     {
-                        string insertQuery = @"INSERT INTO BillionwattsTemp (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
-                                            "VALUES (@Guid, @Collector_Guid, @UploadTime , @Sort, @TValues , @DEBUG )";
-                        await cn.ExecuteAsync(insertQuery, p);
+                        // string insertQuery = @"INSERT INTO BillionwattsTemp (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
+                        //                     "VALUES (@Guid, @Collector_Guid, @UploadTime , @Sort, @TValues , @DEBUG )";
+                        // await cn.ExecuteAsync(insertQuery, p);
 
                         string updtaeQuery = string.Format("update BillionwattsPower set TemperatureS = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
                         , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
@@ -1291,8 +1219,7 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            Console.WriteLine("模組溫度計 dataNo: " + dataNo);
-
+            CS1("模組溫度計 dataNo: " + dataNo);
             try
             {
                 var l = new List<dtoTemperature>();
@@ -1330,7 +1257,6 @@ namespace Partner
 
                         l.Add(b);
                     }
-                    Console.WriteLine("模組溫度計 Post End");
                 }
                 // * 寫入db
                 await toDBTempBack(l);
@@ -1350,9 +1276,9 @@ namespace Partner
                 {
                     foreach (var p in bsp)
                     {
-                        string insertQuery = @"INSERT INTO BillionwattsTemp (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
-                                           "VALUES (@Guid, @Collector_Guid , @UploadTime , @Sort, @TValues ,@DEBUG )";
-                        await cn.ExecuteAsync(insertQuery, p);
+                        // string insertQuery = @"INSERT INTO BillionwattsTemp (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
+                        //                    "VALUES (@Guid, @Collector_Guid , @UploadTime , @Sort, @TValues ,@DEBUG )";
+                        // await cn.ExecuteAsync(insertQuery, p);
 
                         string updtaeQuery = string.Format("update BillionwattsPower set TemperatureB = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
                         , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
@@ -1368,6 +1294,131 @@ namespace Partner
         }
 
         #endregion
+
+        #region 風速計
+        public static async Task<List<dtoWind>> FetchWind(Guid CollectorId)
+        {
+            try
+            {
+                using (var cn = new SqlConnection(connRoot))
+                {
+                    var SqlStr1 = string.Format("Execute SP_GetWind '{0}';", CollectorId.ToString());
+                    var q = await cn.QueryAsync<dtoWind>(SqlStr1);
+                    if (q.FirstOrDefault() != null)
+                    {
+                        return q.ToList();
+                    }
+                    else
+                    {
+                        return null;
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine("FetchWind : " + e.Message.ToString());
+                throw;
+            }
+        }
+
+        public static async Task FetchWindPower(string siteNo, string dataNo, string startDatetime, string endDatetime, string token, int timeStamp, string url, int Sort, Guid CollectorId)
+        {
+            var _Para = new JObject();
+            _Para["siteNo"] = siteNo;
+            _Para["dataNo"] = dataNo;
+            _Para["startDatetime"] = startDatetime;
+            _Para["endDatetime"] = endDatetime;
+
+            var _Raw = new JObject();
+            _Raw["api"] = "ctAirmeterRawData";
+            _Raw["token"] = token;
+            _Raw["langCode"] = "zh_TW";
+            _Raw["sendTimestamp"] = timeStamp;
+            _Raw["para"] = _Para;
+
+            string JsonString = JsonConvert.SerializeObject(_Raw);
+            CS1("風速計 dataNo: " + dataNo);
+            try
+            {
+                var l = new List<dtoWindP>();
+                using (var client = new HttpClient())
+                {
+                    var res = client.PostAsync(url, new StringContent(JsonString, Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); ;
+                    var res2 = res.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    Result1 r = new Result1(res2);
+                    foreach (var p in r.data)
+                    {
+                        var p1 = new Result3(p.ToString());
+                        var windSpeed = 0.0;
+                        if (p1.windSpeed != null)
+                        {
+                            windSpeed = double.Parse(p1.windSpeed);
+                        }
+
+                        var up = p1.datatimeR;
+
+                        var b = new dtoWindP();
+                        b.Guid = Guid.NewGuid();
+                        b.Collector_Guid = CollectorId;
+                        b.UploadTime = DateTime.Parse(up);
+                        b.Sort = Sort;
+                        b.TValues = Math.Round(windSpeed, 2);
+
+                        if (p1.mateWarn != "")
+                        {
+                            b.DEBUG = p1.mateWarn;
+                        }
+                        else
+                        {
+                            b.DEBUG = "";
+                        }
+
+                        l.Add(b);
+                    }
+                }
+                // * 寫入db
+                await toDBWind(l);
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine("FetchWindPower : " + e.Message.ToString());
+                throw;
+            }
+        }
+
+        public static async Task toDBWind(List<dtoWindP> bsp)
+        {
+            try
+            {
+                using (var cn = new SqlConnection(connSolar))
+                {
+                    foreach (var p in bsp)
+                    {
+                        string insertQuery = @"INSERT INTO BillionwattsWind (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
+                                           "VALUES (@Guid, @Collector_Guid , @UploadTime , @Sort, @TValues ,@DEBUG )";
+                        await cn.ExecuteAsync(insertQuery, p);
+
+                        // string updtaeQuery = string.Format("update BillionwattsPower set TemperatureB = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
+                        // , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
+                        // await cn.ExecuteAsync(updtaeQuery);
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine("toDBWind : " + e.Message.ToString());
+                throw;
+            }
+        }
+
+
+        #endregion
+
+        public static void CS1(string a)
+        {
+            var str = string.Format("{0} Start , {1}", a, DateTime.Now.ToString("HH:mm:ss fff"));
+            Console.WriteLine(str);
+        }
 
     }
 }

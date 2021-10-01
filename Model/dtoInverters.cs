@@ -23,4 +23,10 @@ namespace Partner.Model
         public int Sort { get; set; }
         public string SerialNumber { get; set; }
     }
+
+    public class dtoWind
+    {
+        public int Sort { get; set; }
+        public string SerialNumber { get; set; }
+    }
 }

@@ -311,7 +311,33 @@ namespace Partner.Model
             sunPowerH = (string)jResult2["sunPowerH"];
             surfaceTemp = (string)jResult2["surfaceTemp"];
             backTemp = (string)jResult2["backTemp"];
+            windSpeed = (string)jResult2["windSpeed"];
             mateStat = (string)jResult2["mateStat"];
+            mateWarn = (string)jResult2["mateWarn"];
+        }
+
+        public string dataNo { get; set; } // 設備識別碼
+        public string datatimeR { get; set; } // 觀測時間
+        public string sunPower { get; set; }
+        public string sunPowerH { get; set; }
+        public string surfaceTemp { get; set; }
+        public string backTemp { get; set; }
+        public string windSpeed { get; set; }
+        public string mateStat { get; set; } // 設備狀態碼
+        public string mateWarn { get; set; } // 設備警示碼
+
+    }
+
+    public class Result4
+    {
+        public Result4(string json)
+        {
+            JObject jObject = JObject.Parse(json);
+            JToken jResult2 = jObject;
+            dataNo = (string)jResult2["dataNo"];
+            datatimeR = (string)jResult2["datatimeR"];
+            sunPower = (string)jResult2["windSpeed"];
+            sunPowerH = (string)jResult2["mateStat"];
             mateWarn = (string)jResult2["mateWarn"];
         }
 

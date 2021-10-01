@@ -45,6 +45,16 @@ namespace Partner.Model
         public int Sort { get; set; }
         public double TValues { get; set; }
         public string DEBUG { get; set; }
+    }
+
+    public class dtoWindP
+    {
+        public Guid Guid { get; set; }
+        public Guid Collector_Guid { get; set; }
+        public DateTime UploadTime { get; set; }
+        public int Sort { get; set; }
+        public double TValues { get; set; }
+        public string DEBUG { get; set; }
 
     }
 
