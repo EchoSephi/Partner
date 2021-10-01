@@ -12,6 +12,7 @@ namespace Partner.Model
         public double Sunshine { get; set; }
         public double TemperatureB { get; set; }
         public double TemperatureS { get; set; }
+        public double Wind{ get; set; }
         public string STATUS { get; set; }
         public DateTime UploadTime { get; set; }
         public double vDc { get; set; }

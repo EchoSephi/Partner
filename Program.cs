@@ -39,18 +39,30 @@ namespace Partner
             {
                 ts = 5;
             }
+            else if (args.Length == 1)
+            {
+                int num;
+                bool test = int.TryParse(args[0], out num);
+                ts = num;
+            }
+
+            Console.WriteLine("取得 " + (ts + 1) + " 分鐘資料 ");
 
             // for (int i = 0; i < (1 * 24); i++)
             // {
-            // ts = 34;
-            Console.WriteLine("取得 " + (ts + 1) + " 分鐘資料 ");
-            string guid = "E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6";
-            await Reload(guid, ts);
+            // ts = 1019;
+            //string guid = "E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6";
+            //await Reload(guid, ts);
             // }
 
+            // var lt = DateTime.Parse("2021-10-01 05:00:00.000");
+            // for (int i = 0; i < 25; i++)
+            // {
+                // await TestSunTemp(ts,lt);
+                // lt = lt.AddDays(1);
+            // }
 
-            // Console.WriteLine("Start");
-            // await Start(ts);
+            await Start(ts);
 
         }
 
@@ -159,17 +171,17 @@ namespace Partner
             }
         }
 
-        public static async Task TestSunTemp(int ts)
+        public static async Task TestSunTemp(int ts,DateTime lt)
         {
             int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
             var s1 = password + timeStamp;
             var token = Tool.MD5code(s1) + account;
 
-            var Cases_Guid = Guid.Parse("124AC786-7E20-41B6-9F36-D38ECBDFA6BC");
+            var Cases_Guid = Guid.Parse("E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6");
 
-            var CollectorId = Guid.Parse("3F11689D-9314-499A-B8FD-E10A9F389CBF");
-            var siteNo = "P2021126";
-            var lt = DateTime.Parse("2021-07-02 17:00:00.000");
+            var CollectorId = Guid.Parse("4BC2D626-C185-4546-B081-E1E9743D40B8");
+            var siteNo = "P2021184";
+            // var lt = DateTime.Parse("2021-09-05 05:00:00.000");
 
             var d = lt.AddMinutes(1);
             var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
@@ -177,18 +189,18 @@ namespace Partner
             // var startDatetime = "2021-07-13 04:59:00.000";
             // var endDatetime = "2021-07-13 20:00:00.000";
 
-            #region 日照計
-            var q3 = await FetchSunlightMeter(CollectorId);
-            int i = 1;
-            foreach (var p3 in q3)
-            {
-                var dataNo = p3.SerialNumber;
-                var Sort = p3.Sort;
-                await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
-                i++;
-            }
+            // #region 日照計
+            // var q3 = await FetchSunlightMeter(CollectorId);
+            // int i = 1;
+            // foreach (var p3 in q3)
+            // {
+            //     var dataNo = p3.SerialNumber;
+            //     var Sort = p3.Sort;
+            //     await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
+            //     i++;
+            // }
 
-            #endregion
+            // #endregion
 
             #region 環境溫度計
             var q4 = await FetchTempSurface(CollectorId);
@@ -676,6 +688,7 @@ namespace Partner
                         b.Sunshine = 0;
                         b.TemperatureB = 0;
                         b.TemperatureS = 0;
+                        b.Wind = 0;
                         if (p1.mateWarn != "")
                         {
                             b.STATUS = p1.mateWarn;
@@ -702,15 +715,15 @@ namespace Partner
 
         public static async Task toDBIvtPower(List<dtoBillionwattsPower> bsp)
         {
-            CS1("逆變器 toDBIvtPower");
+            //CS1("逆變器 toDBIvtPower");
             try
             {
                 using (var cn = new SqlConnection(connSolar))
                 {
                     foreach (var p in bsp)
                     {
-                        string insertQuery = @"INSERT INTO BillionwattsPower (Guid, Collector_Guid, Sort, ACPower, DCPower , Sunshine , TemperatureS , TemperatureB , STATUS , UploadTime , vDc , cDc , vAc , cAc ) " +
-                        "VALUES (@Guid, @Collector_Guid, @Sort, @ACPower, @DCPower, @Sunshine , @TemperatureS , @TemperatureB , @STATUS , @UploadTime , @vDc , @cDc , @vAc , @cAc)";
+                        string insertQuery = @"INSERT INTO BillionwattsPower (Guid, Collector_Guid, Sort, ACPower, DCPower , Sunshine , TemperatureS , TemperatureB , Wind , STATUS , UploadTime , vDc , cDc , vAc , cAc ) " +
+                        "VALUES (@Guid, @Collector_Guid, @Sort, @ACPower, @DCPower, @Sunshine , @TemperatureS , @TemperatureB , @Wind , @STATUS , @UploadTime , @vDc , @cDc , @vAc , @cAc)";
 
                         var result = await cn.ExecuteAsync(insertQuery, p);
                     }
@@ -725,7 +738,7 @@ namespace Partner
 
         public static async Task toDB2(DateTime dt, Guid CollectorId, string siteNo)
         {
-            CS1("逆變器 toDB2");
+            //CS1("逆變器 toDB2");
             var tbn = "ivtS_" + siteNo;
             var info = "";
             try
@@ -809,7 +822,7 @@ namespace Partner
 
         public static async Task toDB3(Guid CollectorId, string startDatetime, string endDatetime)
         {
-            CS1("逆變器 toDB3");
+            //CS1("逆變器 toDB3");
             var SqlStr = string.Format("Execute SP_PowertoHour '{0}' , '{1}' , '{2}' ; ", CollectorId.ToString(), startDatetime, endDatetime);
             using (var cn = new SqlConnection(connSolar))
             {
@@ -827,7 +840,7 @@ namespace Partner
 
         public static async Task toDB4(Guid CollectorId, string startDatetime, string endDatetime)
         {
-            CS1("逆變器 toDB4");
+            //CS1("逆變器 toDB4");
             var SqlStr = string.Format("Execute SP_GetCollectorDay '{0}' , '{1}' , '{2}' ;", CollectorId.ToString(), startDatetime, endDatetime);
             using (var cn = new SqlConnection(connRoot))
             {
@@ -1236,6 +1249,13 @@ namespace Partner
                         {
                             backTemp = double.Parse(p1.backTemp);
                         }
+                        else
+                        {
+                            if (p1.surfaceTemp != null)
+                            {
+                                backTemp = double.Parse(p1.surfaceTemp);
+                            }
+                        }
 
                         var up = p1.datatimeR;
 
@@ -1394,13 +1414,13 @@ namespace Partner
                 {
                     foreach (var p in bsp)
                     {
-                        string insertQuery = @"INSERT INTO BillionwattsWind (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
-                                           "VALUES (@Guid, @Collector_Guid , @UploadTime , @Sort, @TValues ,@DEBUG )";
-                        await cn.ExecuteAsync(insertQuery, p);
+                        // string insertQuery = @"INSERT INTO BillionwattsWind (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
+                        //                    "VALUES (@Guid, @Collector_Guid , @UploadTime , @Sort, @TValues ,@DEBUG )";
+                        // await cn.ExecuteAsync(insertQuery, p);
 
-                        // string updtaeQuery = string.Format("update BillionwattsPower set TemperatureB = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
-                        // , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
-                        // await cn.ExecuteAsync(updtaeQuery);
+                        string updtaeQuery = string.Format("update BillionwattsPower set Wind = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
+                        , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
+                        await cn.ExecuteAsync(updtaeQuery);
                     }
                 }
             }
