@@ -12,7 +12,7 @@ namespace Partner.Model
         public double Sunshine { get; set; }
         public double TemperatureB { get; set; }
         public double TemperatureS { get; set; }
-        public double Wind{ get; set; }
+        public double Wind { get; set; }
         public string STATUS { get; set; }
         public DateTime UploadTime { get; set; }
         public double vDc { get; set; }
@@ -56,6 +56,18 @@ namespace Partner.Model
         public int Sort { get; set; }
         public double TValues { get; set; }
         public string DEBUG { get; set; }
+
+    }
+
+    public class dtoError
+    {
+        public Guid Guid { get; set; }
+        public Guid Collector_Guid { get; set; }
+        public string Types { get; set; }
+        public int Sort { get; set; }
+        public string MateStat { get; set; }
+        public string MateWarn { get; set; }
+        public DateTime UploadTime { get; set; }
 
     }
 

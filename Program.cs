@@ -701,13 +701,23 @@ namespace Partner
                         b.Wind = 0;
                         if (p1.mateWarn != "")
                         {
-                            b.STATUS = p1.mateWarn;
+                            // b.STATUS = p1.mateWarn;
+                            var err = new dtoError();
+                            err.Guid = Guid.NewGuid();
+                            err.Collector_Guid = CollectorId;
+                            err.Types = "逆變器";
+                            err.Sort = Sort;
+                            err.MateStat = p1.mateStat;
+                            err.MateWarn = p1.mateWarn;
+                            err.UploadTime = DateTime.Parse(up);
+                            await toError(err);
                         }
-                        else
-                        {
-                            b.STATUS = "";
-                        }
+                        // else
+                        // {
+                        //     b.STATUS = "";
+                        // }
 
+                        b.STATUS = "";
                         b.UploadTime = DateTime.Parse(up);
                         l.Add(b);
                     }
@@ -719,6 +729,24 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchPower : " + e.Message.ToString());
+                throw;
+            }
+        }
+
+        public static async Task toError(dtoError dto)
+        {
+            try
+            {
+                using (var cn = new SqlConnection(connSolar))
+                {
+                    string insertQuery = @"INSERT INTO BillionwattsError (Guid, Collector_Guid, Types , Sort, MateStat, MateWarn , UploadTime) " +
+                                        "VALUES (@Guid, @Collector_Guid, @Types , @Sort, @MateStat, @MateWarn, @UploadTime )";
+                    var result = await cn.ExecuteAsync(insertQuery, dto);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine("toDBIvtPower :" + e.Message.ToString());
                 throw;
             }
         }
@@ -1014,15 +1042,25 @@ namespace Partner
                         b.UploadTime = DateTime.Parse(up);
                         b.Sort = Sort;
                         b.TValues = Math.Round(sunPower, 2);
+                        b.DEBUG = "";
 
                         if (p1.mateWarn != "")
                         {
-                            b.DEBUG = p1.mateWarn;
+                            // b.DEBUG = p1.mateWarn;
+                            var err = new dtoError();
+                            err.Guid = Guid.NewGuid();
+                            err.Collector_Guid = CollectorId;
+                            err.Types = "日照計";
+                            err.Sort = Sort;
+                            err.MateStat = p1.mateStat;
+                            err.MateWarn = p1.mateWarn;
+                            err.UploadTime = DateTime.Parse(up);
+                            await toError(err);
                         }
-                        else
-                        {
-                            b.DEBUG = "";
-                        }
+                        // else
+                        // {
+                        //     b.DEBUG = "";
+                        // }
                         l.Add(b);
                     }
                 }
@@ -1150,15 +1188,25 @@ namespace Partner
                         b.UploadTime = DateTime.Parse(up);
                         b.Sort = Sort;
                         b.TValues = Math.Round(surfaceTemp, 2);
+                        b.DEBUG = "";
 
                         if (p1.mateWarn != "")
                         {
-                            b.DEBUG = p1.mateWarn;
+                            // b.DEBUG = p1.mateWarn;
+                            var err = new dtoError();
+                            err.Guid = Guid.NewGuid();
+                            err.Collector_Guid = CollectorId;
+                            err.Types = "環境溫度計";
+                            err.Sort = Sort;
+                            err.MateStat = p1.mateStat;
+                            err.MateWarn = p1.mateWarn;
+                            err.UploadTime = DateTime.Parse(up);
+                            await toError(err);
                         }
-                        else
-                        {
-                            b.DEBUG = "";
-                        }
+                        // else
+                        // {
+                        //     b.DEBUG = "";
+                        // }
 
                         l.Add(b);
                     }
@@ -1275,15 +1323,25 @@ namespace Partner
                         b.UploadTime = DateTime.Parse(up);
                         b.Sort = Sort;
                         b.TValues = Math.Round(backTemp, 2);
+                        b.DEBUG = "";
 
                         if (p1.mateWarn != "")
                         {
-                            b.DEBUG = p1.mateWarn;
+                            // b.DEBUG = p1.mateWarn;
+                            var err = new dtoError();
+                            err.Guid = Guid.NewGuid();
+                            err.Collector_Guid = CollectorId;
+                            err.Types = "模組溫度計";
+                            err.Sort = Sort;
+                            err.MateStat = p1.mateStat;
+                            err.MateWarn = p1.mateWarn;
+                            err.UploadTime = DateTime.Parse(up);
+                            await toError(err);
                         }
-                        else
-                        {
-                            b.DEBUG = "";
-                        }
+                        // else
+                        // {
+                        //     b.DEBUG = "";
+                        // }
 
                         l.Add(b);
                     }
@@ -1393,15 +1451,25 @@ namespace Partner
                         b.UploadTime = DateTime.Parse(up);
                         b.Sort = Sort;
                         b.TValues = Math.Round(windSpeed, 2);
+                        b.DEBUG = "";
 
                         if (p1.mateWarn != "")
                         {
-                            b.DEBUG = p1.mateWarn;
+                            // b.DEBUG = p1.mateWarn;
+                            var err = new dtoError();
+                            err.Guid = Guid.NewGuid();
+                            err.Collector_Guid = CollectorId;
+                            err.Types = "風速計";
+                            err.Sort = Sort;
+                            err.MateStat = p1.mateStat;
+                            err.MateWarn = p1.mateWarn;
+                            err.UploadTime = DateTime.Parse(up);
+                            await toError(err);
                         }
-                        else
-                        {
-                            b.DEBUG = "";
-                        }
+                        // else
+                        // {
+                        //     b.DEBUG = "";
+                        // }
 
                         l.Add(b);
                     }
