@@ -46,11 +46,10 @@ namespace Partner
                 ts = num;
             }
 
-            Console.WriteLine("取得 " + (ts + 1) + " 分鐘資料 ");
-
             // for (int i = 0; i < (1 * 24); i++)
             // {
             // ts = 1019;
+            // Console.WriteLine("取得 " + (ts + 1) + " 分鐘資料 ");
             //string guid = "E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6";
             //await Reload(guid, ts);
             // }
@@ -58,8 +57,8 @@ namespace Partner
             // var lt = DateTime.Parse("2021-10-01 05:00:00.000");
             // for (int i = 0; i < 25; i++)
             // {
-                // await TestSunTemp(ts,lt);
-                // lt = lt.AddDays(1);
+            // await TestSunTemp(ts,lt);
+            // lt = lt.AddDays(1);
             // }
 
             await Start(ts);
@@ -171,7 +170,7 @@ namespace Partner
             }
         }
 
-        public static async Task TestSunTemp(int ts,DateTime lt)
+        public static async Task TestSunTemp(int ts, DateTime lt)
         {
             int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
             var s1 = password + timeStamp;
@@ -230,12 +229,11 @@ namespace Partner
 
         public static async Task Start(int ts)
         {
+            int ts1 = ts;
             // * 1.取得api廠商資料
             var q = await FetchPartner();
             foreach (var p in q)
             {
-
-
                 var account = p.Account;
                 var password = p.Password;
                 var url = p.UrlAddress;
@@ -247,17 +245,29 @@ namespace Partner
 
                     await Task.Run(async () =>
                     {
-                        CS1(p.Cases_Name);
+                        // CS1(p.Cases_Name);
 
                         var CollectorId = p1.Guid;
                         var siteNo = p1.MacAddress;
                         var lt = p1.LastUploadTime;
 
+                        // 最近常發現接收資料少一小時以上
                         var d = lt.AddMinutes(1);
+                        if (ts == 5 && (d.AddMinutes(5) < DateTime.Now))
+                        {
+                            ts1 = (DateTime.Now - d).Minutes;
+                        }
+                        else
+                        {
+                            ts1 = ts;
+                        }
+
                         var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
-                        var endDatetime = d.AddMinutes(ts).ToString("yyyy-MM-dd HH:mm:ss");
+                        Console.WriteLine(p.Cases_Name + " " + startDatetime);
+                        Console.WriteLine("取得 " + (ts1) + " 分鐘資料 ");
+                        var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
                         var ds = d.ToString("yyyy-MM-dd HH:00:00");
-                        var de = d.AddMinutes(ts).ToString("yyyy-MM-dd HH:59:00");
+                        var de = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:59:00");
 
                         int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
                         var sec = password + timeStamp;
