@@ -255,7 +255,14 @@ namespace Partner
                         var d = lt.AddMinutes(1);
                         if (ts == 5 && (d.AddMinutes(5) < DateTime.Now))
                         {
-                            ts1 = (DateTime.Now - d).Minutes;
+                            try
+                            {
+                                ts1 = int.Parse(Math.Round((DateTime.Now - d).TotalHours * 60.0, 0).ToString());
+                            }
+                            catch (System.Exception)
+                            {
+                                ts1 = 5;
+                            }
                         }
                         else
                         {
