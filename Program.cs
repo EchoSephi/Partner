@@ -55,11 +55,11 @@ namespace Partner
             // }
 
 
-            await TestSunTemp();
+            // await TestSunTemp();
 
 
 
-            // await Start(ts);
+            await Start(ts);
 
         }
 
