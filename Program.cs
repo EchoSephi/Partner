@@ -46,180 +46,120 @@ namespace Partner
                 ts = num;
             }
 
-            // for (int i = 0; i < (1 * 24); i++)
-            // {
-            // ts = 1019;
-            // Console.WriteLine("取得 " + (ts + 1) + " 分鐘資料 ");
-            //string guid = "E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6";
-            //await Reload(guid, ts);
-            // }
-
-
-            // await TestSunTemp();
-
-
+            // await Reload(839);
 
             await Start(ts);
 
         }
 
-        public static async Task Reload(string CasesGuid, int ts)
+        public static async Task Reload(int ts)
         {
-            var Cases_Guid = Guid.Parse(CasesGuid);
-            int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
-            var s1 = password + timeStamp;
-            var token = Tool.MD5code(s1) + account;
-            // * 2.讀取db -- 最後更新時間
+            int ts1 = ts;
+            var Cases_Guid = Guid.Parse("B8F76694-38D4-4BCB-819B-3F32CA2DDB5B");
+
             var q1 = await FetchCollectors(Cases_Guid);
             foreach (var p1 in q1)
             {
 
-                var CollectorId = p1.Guid;
-                var siteNo = p1.MacAddress;
-                var lt = p1.LastUploadTime;
-
-                var d = lt.AddMinutes(1);
-                var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
-                var endDatetime = d.AddMinutes(ts).ToString("yyyy-MM-dd HH:mm:ss");
-                var ds = d.ToString("yyyy-MM-dd HH:00:00");
-                var de = d.AddMinutes(ts).ToString("yyyy-MM-dd HH:59:00");
-
-                #region 逆變器
-                var q2 = await FetchInverters(CollectorId);
-                foreach (var p2 in q2)
+                await Task.Run(async () =>
                 {
-                    var dataNo = p2.SerialNumber;
-                    var Sort = p2.Sort;
-                    await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                }
+                    // CS1(p.Cases_Name);
 
-                // * 產生後台可以檢視的資料
-                await toDB2(lt, CollectorId, siteNo);
+                    var CollectorId = p1.Guid;
+                    var siteNo = p1.MacAddress;
+                    var lt = DateTime.Parse("2021-06-30 05:00:00");
+                    var d = lt.AddMinutes(1);
+                    var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
+                    var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
+                    var ds = d.ToString("yyyy-MM-dd HH:00:00");
+                    var de = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:59:00");
 
-                // * 寫入 PowerHour
-                await toDB3(CollectorId, ds, de);
+                    int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
+                    var sec = password + timeStamp;
+                    var token = Tool.MD5code(sec) + account;
 
-                await toDB4(CollectorId, d.ToString("yyyy-MM-dd"), endDatetime);
-                #endregion
-
-                #region 日照計
-                CS1("日照計");
-                var q3 = await FetchSunlightMeter(CollectorId);
-                if (q3 != null)
-                {
-                    int i = 1;
-                    foreach (var p3 in q3)
+                    #region 逆變器
+                    var q2 = await FetchInverters(CollectorId);
+                    foreach (var p2 in q2)
                     {
-                        var dataNo = p3.SerialNumber;
-                        var Sort = p3.Sort;
-                        await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
-                        i++;
+                        var dataNo = p2.SerialNumber;
+                        var Sort = p2.Sort;
+                        await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
                     }
-                }
 
-                #endregion
+                    // * 產生後台可以檢視的資料
+                    await toDB2(lt, CollectorId, siteNo);
 
-                #region 環境溫度計
-                CS1("環境溫度計");
-                var q4 = await FetchTempSurface(CollectorId);
-                if (q4 != null)
-                {
-                    foreach (var p4 in q4)
+                    // * 寫入 PowerHour
+                    await toDB3(CollectorId, ds, de);
+
+                    // await toDB4(CollectorId, d.ToString("yyyy-MM-dd"), endDatetime);
+                    #endregion
+
+                    #region 日照計
+                    var q3 = await FetchSunlightMeter(CollectorId);
+                    if (q3 != null)
                     {
-                        var dataNo = p4.SerialNumber;
-                        var Sort = p4.Sort;
-                        await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-
+                        int i = 1;
+                        foreach (var p3 in q3)
+                        {
+                            var dataNo = p3.SerialNumber;
+                            var Sort = p3.Sort;
+                            await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
+                            i++;
+                        }
                     }
-                }
 
-                #endregion
+                    #endregion
 
-                #region 模組溫度計
-                CS1("模組溫度計");
-                var q5 = await FetchTempBack(CollectorId);
-                if (q5 != null)
-                {
-                    foreach (var p5 in q5)
+                    #region 環境溫度計
+                    var q4 = await FetchTempSurface(CollectorId);
+                    if (q4 != null)
                     {
-                        var dataNo = p5.SerialNumber;
-                        var Sort = p5.Sort;
-                        await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                        foreach (var p4 in q4)
+                        {
+                            var dataNo = p4.SerialNumber;
+                            var Sort = p4.Sort;
+                            await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+
+                        }
                     }
-                }
 
-                #endregion
+                    #endregion
 
-                #region 風速計
-                CS1("風速計");
-                var q6 = await FetchWind(CollectorId);
-                if (q6 != null)
-                {
-                    foreach (var p6 in q6)
+                    #region 模組溫度計
+                    var q5 = await FetchTempBack(CollectorId);
+                    if (q5 != null)
                     {
-                        var dataNo = p6.SerialNumber;
-                        var Sort = p6.Sort;
-                        await FetchWindPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                        foreach (var p5 in q5)
+                        {
+                            var dataNo = p5.SerialNumber;
+                            var Sort = p5.Sort;
+                            await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                        }
                     }
-                }
 
-                #endregion
-                Console.WriteLine("endDatetime :" + endDatetime);
-            }
-        }
+                    #endregion
 
-        public static async Task TestSunTemp()
-        {
-            int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
-            var s1 = password + timeStamp;
-            var token = Tool.MD5code(s1) + account;
+                    #region 風速計
+                    var q6 = await FetchWind(CollectorId);
+                    if (q6 != null)
+                    {
+                        foreach (var p6 in q6)
+                        {
+                            var dataNo = p6.SerialNumber;
+                            var Sort = p6.Sort;
+                            await FetchWindPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                        }
+                    }
 
-            var Cases_Guid = Guid.Parse("E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6");
-            var CollectorId = Guid.Parse("4BC2D626-C185-4546-B081-E1E9743D40B8");
-            var siteNo = "P2021184";
-
-            var startDatetime = "2021-10-26 04:59:00.000";
-            var endDatetime = "2021-10-26 12:10:00.000";
-
-            #region 日照計
-            var q3 = await FetchSunlightMeter(CollectorId);
-            int i = 1;
-            foreach (var p3 in q3)
-            {
-                var dataNo = p3.SerialNumber;
-                var Sort = p3.Sort;
-                await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
-
-                i++;
+                    #endregion
+                });
             }
 
-            #endregion
 
-            // #region 環境溫度計
-            // var q4 = await FetchTempSurface(CollectorId);
-            // foreach (var p4 in q4)
-            // {
-            //     var dataNo = p4.SerialNumber;
-            //     var Sort = p4.Sort;
-            //     await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-
-            // }
-
-            // #endregion
-
-            // #region 模組溫度計
-            // var q5 = await FetchTempBack(CollectorId);
-            // foreach (var p5 in q5)
-            // {
-            //     var dataNo = p5.SerialNumber;
-            //     var Sort = p5.Sort;
-            //     await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-            // }
-
-            // #endregion
-
-            Console.WriteLine("endDatetime :" + endDatetime);
         }
+
 
         public static async Task Start(int ts)
         {
