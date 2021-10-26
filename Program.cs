@@ -54,14 +54,12 @@ namespace Partner
             //await Reload(guid, ts);
             // }
 
-            // var lt = DateTime.Parse("2021-10-01 05:00:00.000");
-            // for (int i = 0; i < 25; i++)
-            // {
-            // await TestSunTemp(ts,lt);
-            // lt = lt.AddDays(1);
-            // }
 
-            await Start(ts);
+            await TestSunTemp();
+
+
+
+            // await Start(ts);
 
         }
 
@@ -170,59 +168,55 @@ namespace Partner
             }
         }
 
-        public static async Task TestSunTemp(int ts, DateTime lt)
+        public static async Task TestSunTemp()
         {
             int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
             var s1 = password + timeStamp;
             var token = Tool.MD5code(s1) + account;
 
             var Cases_Guid = Guid.Parse("E7A0C58A-BE4B-4DD0-B95E-1B768BB404A6");
-
             var CollectorId = Guid.Parse("4BC2D626-C185-4546-B081-E1E9743D40B8");
             var siteNo = "P2021184";
-            // var lt = DateTime.Parse("2021-09-05 05:00:00.000");
 
-            var d = lt.AddMinutes(1);
-            var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
-            var endDatetime = d.AddMinutes(ts).ToString("yyyy-MM-dd HH:mm:ss");
-            // var startDatetime = "2021-07-13 04:59:00.000";
-            // var endDatetime = "2021-07-13 20:00:00.000";
+            var startDatetime = "2021-10-26 04:59:00.000";
+            var endDatetime = "2021-10-26 12:10:00.000";
 
-            // #region 日照計
-            // var q3 = await FetchSunlightMeter(CollectorId);
-            // int i = 1;
-            // foreach (var p3 in q3)
+            #region 日照計
+            var q3 = await FetchSunlightMeter(CollectorId);
+            int i = 1;
+            foreach (var p3 in q3)
+            {
+                var dataNo = p3.SerialNumber;
+                var Sort = p3.Sort;
+                await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
+
+                i++;
+            }
+
+            #endregion
+
+            // #region 環境溫度計
+            // var q4 = await FetchTempSurface(CollectorId);
+            // foreach (var p4 in q4)
             // {
-            //     var dataNo = p3.SerialNumber;
-            //     var Sort = p3.Sort;
-            //     await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
-            //     i++;
+            //     var dataNo = p4.SerialNumber;
+            //     var Sort = p4.Sort;
+            //     await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+
             // }
 
             // #endregion
 
-            #region 環境溫度計
-            var q4 = await FetchTempSurface(CollectorId);
-            foreach (var p4 in q4)
-            {
-                var dataNo = p4.SerialNumber;
-                var Sort = p4.Sort;
-                await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+            // #region 模組溫度計
+            // var q5 = await FetchTempBack(CollectorId);
+            // foreach (var p5 in q5)
+            // {
+            //     var dataNo = p5.SerialNumber;
+            //     var Sort = p5.Sort;
+            //     await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+            // }
 
-            }
-
-            #endregion
-
-            #region 模組溫度計
-            var q5 = await FetchTempBack(CollectorId);
-            foreach (var p5 in q5)
-            {
-                var dataNo = p5.SerialNumber;
-                var Sort = p5.Sort;
-                await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-            }
-
-            #endregion
+            // #endregion
 
             Console.WriteLine("endDatetime :" + endDatetime);
         }
