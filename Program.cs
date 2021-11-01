@@ -46,16 +46,16 @@ namespace Partner
                 ts = num;
             }
 
-            // await Reload(839);
+            await Reload(900);
 
-            await Start(ts);
+            // await Start(ts);
 
         }
 
         public static async Task Reload(int ts)
         {
             int ts1 = ts;
-            var Cases_Guid = Guid.Parse("B8F76694-38D4-4BCB-819B-3F32CA2DDB5B");
+            var Cases_Guid = Guid.Parse("124AC786-7E20-41B6-9F36-D38ECBDFA6BC");
 
             var q1 = await FetchCollectors(Cases_Guid);
             foreach (var p1 in q1)
@@ -67,7 +67,7 @@ namespace Partner
 
                     var CollectorId = p1.Guid;
                     var siteNo = p1.MacAddress;
-                    var lt = DateTime.Parse("2021-06-30 05:00:00");
+                    var lt = DateTime.Parse("2021-10-07 00:00:00");
                     var d = lt.AddMinutes(1);
                     var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
                     var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
