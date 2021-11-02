@@ -67,7 +67,7 @@ namespace Partner
 
                     var CollectorId = p1.Guid;
                     var siteNo = p1.MacAddress;
-                    var lt = DateTime.Parse("2021-10-07 00:00:00");
+                    var lt = DateTime.Parse("2021-10-08 05:00:00");
                     var d = lt.AddMinutes(1);
                     var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
                     var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
@@ -87,8 +87,8 @@ namespace Partner
                         await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
                     }
 
-                    // * 產生後台可以檢視的資料
-                    await toDB2(lt, CollectorId, siteNo);
+                    // // * 產生後台可以檢視的資料
+                    // await toDB2(lt, CollectorId, siteNo);
 
                     // * 寫入 PowerHour
                     await toDB3(CollectorId, ds, de);
@@ -223,8 +223,8 @@ namespace Partner
                             await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
                         }
 
-                        // * 產生後台可以檢視的資料
-                        await toDB2(lt, CollectorId, siteNo);
+                        // // * 產生後台可以檢視的資料
+                        // await toDB2(lt, CollectorId, siteNo);
 
                         // * 寫入 PowerHour
                         await toDB3(CollectorId, ds, de);
@@ -715,89 +715,89 @@ namespace Partner
             }
         }
 
-        public static async Task toDB2(DateTime dt, Guid CollectorId, string siteNo)
-        {
-            //CS1("逆變器 toDB2");
-            var tbn = "ivtS_" + siteNo;
-            var info = "";
-            try
-            {
-                using (var cn = new SqlConnection(connIvt))
-                {
-                    var d = dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
-                    string str = string.Format("Execute SP_GetBillionwattsPowerRaw '{0}','{1}';", CollectorId.ToString(), d);
-                    // var result = cn.Query<dtoIvt>(str).ToList();
-                    var result1 = await cn.QueryAsync<dtoIvt>(str);
-                    if (result1.FirstOrDefault() == null)
-                    {
-                        return;
-                    }
+        // public static async Task toDB2(DateTime dt, Guid CollectorId, string siteNo)
+        // {
+        //     //CS1("逆變器 toDB2");
+        //     var tbn = "ivtS_" + siteNo;
+        //     var info = "";
+        //     try
+        //     {
+        //         using (var cn = new SqlConnection(connIvt))
+        //         {
+        //             var d = dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        //             string str = string.Format("Execute SP_GetBillionwattsPowerRaw '{0}','{1}';", CollectorId.ToString(), d);
+        //             // var result = cn.Query<dtoIvt>(str).ToList();
+        //             var result1 = await cn.QueryAsync<dtoIvt>(str);
+        //             if (result1.FirstOrDefault() == null)
+        //             {
+        //                 return;
+        //             }
 
-                    var result = result1.ToList();
+        //             var result = result1.ToList();
 
-                    var q = result.GroupBy(x => x.UploadTime, (u, s) => new
-                    {
-                        UploadTime = u,
-                        MaxSort = s.Max(p => p.Sort)
-                    });
+        //             var q = result.GroupBy(x => x.UploadTime, (u, s) => new
+        //             {
+        //                 UploadTime = u,
+        //                 MaxSort = s.Max(p => p.Sort)
+        //             });
 
-                    Dictionary<string, dtoIvt> dict;
-                    dict = result.ToDictionary(
-                                        o => string.Format("{0},{1}", o.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), o.Sort),
-                                        o => o);
+        //             Dictionary<string, dtoIvt> dict;
+        //             dict = result.ToDictionary(
+        //                                 o => string.Format("{0},{1}", o.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), o.Sort),
+        //                                 o => o);
 
-                    foreach (var p in q)
-                    {
-                        var d1 = p.UploadTime;
-                        var cnt = p.MaxSort;
+        //             foreach (var p in q)
+        //             {
+        //                 var d1 = p.UploadTime;
+        //                 var cnt = p.MaxSort;
 
-                        var SqlStr = "insert into " + tbn + " (UploadTime,info,";
-                        for (int i = 1; i < cnt + 1; i++)
-                        {
-                            SqlStr = SqlStr + "M" + i.ToString() + ",";
-                        }
+        //                 var SqlStr = "insert into " + tbn + " (UploadTime,info,";
+        //                 for (int i = 1; i < cnt + 1; i++)
+        //                 {
+        //                     SqlStr = SqlStr + "M" + i.ToString() + ",";
+        //                 }
 
-                        SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
-                        SqlStr = SqlStr + ") values ('" + d1.ToString("yyyy-MM-dd HH:mm:ss.fff") + "','" + info + "',";
+        //                 SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
+        //                 SqlStr = SqlStr + ") values ('" + d1.ToString("yyyy-MM-dd HH:mm:ss.fff") + "','" + info + "',";
 
-                        for (int i = 1; i < p.MaxSort + 1; i++)
-                        {
-                            try
-                            {
-                                var Ac_Power = 0.0;
-                                var q1 = dict[string.Format("{0},{1}", d1.ToString("yyyy-MM-dd HH:mm:ss.fff"), i.ToString())];
-                                Ac_Power = double.Parse(q1.ACPower.ToString());
-                                SqlStr = SqlStr + Math.Round(Ac_Power, 2) + ",";
-                            }
-                            catch (Exception e)
-                            {
-                                var s = e.Message.ToString();
-                                SqlStr = SqlStr + "0,";
-                                // Console.WriteLine("toDB2 : i=" + i.ToString() + " , " + e.Message);
-                            }
-                        }
+        //                 for (int i = 1; i < p.MaxSort + 1; i++)
+        //                 {
+        //                     try
+        //                     {
+        //                         var Ac_Power = 0.0;
+        //                         var q1 = dict[string.Format("{0},{1}", d1.ToString("yyyy-MM-dd HH:mm:ss.fff"), i.ToString())];
+        //                         Ac_Power = double.Parse(q1.ACPower.ToString());
+        //                         SqlStr = SqlStr + Math.Round(Ac_Power, 2) + ",";
+        //                     }
+        //                     catch (Exception e)
+        //                     {
+        //                         var s = e.Message.ToString();
+        //                         SqlStr = SqlStr + "0,";
+        //                         // Console.WriteLine("toDB2 : i=" + i.ToString() + " , " + e.Message);
+        //                     }
+        //                 }
 
-                        SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
-                        SqlStr = SqlStr + ")";
+        //                 SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
+        //                 SqlStr = SqlStr + ")";
 
-                        try
-                        {
-                            await cn.ExecuteAsync(SqlStr);
-                        }
-                        catch (System.Exception e)
-                        {
-                            Console.WriteLine("toDB2 :" + e.Message.ToString());
-                            throw;
-                        }
-                    }
-                }
+        //                 try
+        //                 {
+        //                     await cn.ExecuteAsync(SqlStr);
+        //                 }
+        //                 catch (System.Exception e)
+        //                 {
+        //                     Console.WriteLine("toDB2 :" + e.Message.ToString());
+        //                     throw;
+        //                 }
+        //             }
+        //         }
 
-            }
-            catch (System.Exception e2)
-            {
-                Console.WriteLine("toDB2-C :" + e2.Message.ToString());
-            }
-        }
+        //     }
+        //     catch (System.Exception e2)
+        //     {
+        //         Console.WriteLine("toDB2-C :" + e2.Message.ToString());
+        //     }
+        // }
 
         public static async Task toDB3(Guid CollectorId, string startDatetime, string endDatetime)
         {
