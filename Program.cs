@@ -46,9 +46,9 @@ namespace Partner
                 ts = num;
             }
 
-            await Reload(900);
+            // await Reload(900);
 
-            // await Start(ts);
+            await Start(ts);
 
         }
 
@@ -67,7 +67,7 @@ namespace Partner
 
                     var CollectorId = p1.Guid;
                     var siteNo = p1.MacAddress;
-                    var lt = DateTime.Parse("2021-10-08 05:00:00");
+                    var lt = DateTime.Parse("2021-10-05 05:00:00");
                     var d = lt.AddMinutes(1);
                     var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
                     var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
@@ -179,7 +179,7 @@ namespace Partner
 
                     await Task.Run(async () =>
                     {
-                        // CS1(p.Cases_Name);
+                        CS1(p.Cases_Name);
 
                         var CollectorId = p1.Guid;
                         var siteNo = p1.MacAddress;
@@ -313,7 +313,8 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            CS1("逆變器 dataNo: " + dataNo);
+            var str = string.Format("逆變器 dataNo:{0}:{1}--", dataNo, startDatetime);
+            CS1(str);
 
             try
             {
