@@ -46,9 +46,57 @@ namespace Partner
                 ts = num;
             }
 
-            // await Reload(900);
+            await Test(900);
 
-            await Start(ts);
+            // await Start(ts);
+
+        }
+
+        public static async Task Test(int ts)
+        {
+            int ts1 = ts;
+            var Cases_Guid = Guid.Parse("124AC786-7E20-41B6-9F36-D38ECBDFA6BC");
+
+            var q1 = await FetchCollectors(Cases_Guid);
+            foreach (var p1 in q1)
+            {
+
+                await Task.Run(async () =>
+                {
+                    // CS1(p.Cases_Name);
+
+                    var CollectorId = p1.Guid;
+                    var siteNo = p1.MacAddress;
+                    var lt = DateTime.Parse("2021-10-08 05:59:00");
+                    var d = lt.AddMinutes(1);
+                    var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
+                    var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
+                    var ds = d.ToString("yyyy-MM-dd HH:00:00");
+                    var de = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:59:00");
+
+                    int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
+                    var sec = password + timeStamp;
+                    var token = Tool.MD5code(sec) + account;
+
+                    #region 逆變器
+                    var q2 = await FetchInverters(CollectorId);
+                    var total = 0.0;
+                    foreach (var p2 in q2)
+                    {
+                        var dataNo = p2.SerialNumber;
+                        var Sort = p2.Sort;
+                        var t = FetchPower_Test(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                        total = total + t;
+
+                        Console.WriteLine("total=" + total);
+                    }
+
+
+                    CS1("total: " + total);
+                    #endregion
+
+                });
+            }
 
         }
 
@@ -67,7 +115,7 @@ namespace Partner
 
                     var CollectorId = p1.Guid;
                     var siteNo = p1.MacAddress;
-                    var lt = DateTime.Parse("2021-10-05 05:00:00");
+                    var lt = DateTime.Parse("2021-10-08 06:00:00");
                     var d = lt.AddMinutes(1);
                     var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
                     var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
@@ -673,6 +721,52 @@ namespace Partner
                 Console.WriteLine("FetchPower : " + e.Message.ToString());
                 throw;
             }
+        }
+
+        public static double FetchPower_Test(string siteNo, string dataNo, string startDatetime, string endDatetime, string token, int timeStamp, string url, int Sort, Guid CollectorId)
+        {
+            var _Para = new JObject();
+            _Para["siteNo"] = siteNo;
+            _Para["dataNo"] = dataNo;
+            _Para["startDatetime"] = startDatetime;
+            _Para["endDatetime"] = endDatetime;
+
+            var _Raw = new JObject();
+            _Raw["api"] = "ctInverterRawData";
+            _Raw["token"] = token;
+            _Raw["langCode"] = "zh_TW";
+            _Raw["sendTimestamp"] = timeStamp;
+            _Raw["para"] = _Para;
+
+            string JsonString = JsonConvert.SerializeObject(_Raw);
+            var str = string.Format("逆變器 dataNo:{0}:{1}--", dataNo, startDatetime);
+            CS1(str);
+
+            using (var client = new HttpClient())
+            {
+                var res = client.PostAsync(url, new StringContent(JsonString, Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); ;
+                var res2 = res.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Result1 r = new Result1(res2);
+                var LastdayPowerH = 0.0;
+                var total = 0.0;
+                foreach (var p in r.data)
+                {
+                    var p1 = new Result2(p.ToString());
+
+                    var up = p1.datatimeR;
+                    if (double.Parse(p1.dayPowerH) > 0)
+                    {
+                        Console.WriteLine(up);
+                    }
+                    var dayPowerH = double.Parse(p1.dayPowerH) - LastdayPowerH;
+
+                    LastdayPowerH = double.Parse(p1.dayPowerH);
+
+                    total = total + dayPowerH;
+                }
+                return total;
+            }
+
         }
 
         public static async Task toError(dtoError dto)
