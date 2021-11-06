@@ -345,6 +345,97 @@ namespace Partner
         }
 
         #region 逆變器
+        public static async Task FetchPower_New(string siteNo, string dataNo, string startDatetime, string endDatetime, string token, int timeStamp, string url, int Sort, Guid CollectorId)
+        {
+            var _Para = new JObject();
+            _Para["siteNo"] = siteNo;
+            _Para["dataNo"] = dataNo;
+            _Para["startDatetime"] = startDatetime;
+            _Para["endDatetime"] = endDatetime;
+
+            var _Raw = new JObject();
+            _Raw["api"] = "ctInverterRawData";
+            _Raw["token"] = token;
+            _Raw["langCode"] = "zh_TW";
+            _Raw["sendTimestamp"] = timeStamp;
+            _Raw["para"] = _Para;
+
+            string JsonString = JsonConvert.SerializeObject(_Raw);
+            var str = string.Format("逆變器 dataNo:{0}:{1}--", dataNo, startDatetime);
+            CS1(str);
+
+            try
+            {
+                var l = new List<dtoBillionwattsPower>();
+                using (var client = new HttpClient())
+                {
+                    var res = client.PostAsync(url, new StringContent(JsonString, Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); ;
+                    var res2 = res.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    Result1 r = new Result1(res2);
+                    foreach (var p in r.data)
+                    {
+                        var p1 = new Result2(p.ToString());
+                        var up = p1.datatimeR;
+
+                        var raw = new RawPower();
+                        raw.Guid = Guid.NewGuid();
+                        raw.Collector_Guid = CollectorId;
+                        raw.Sort = Sort;
+                        // todo
+                        // dayPowerHs
+                        // Sunshine
+                        // Temperature
+                        #region api
+                        raw.dataNo = dataNo;
+                        raw.datatimeR = up;
+                        raw.acPf = p1.acPf;
+                        raw.freq = p1.freq;
+                        raw.dcPower = p1.dcPower;
+                        raw.acPower = p1.acPower;
+                        raw.dayPowerH = p1.dayPowerH;
+                        raw.totalPowerH = p1.totalPowerH;
+                        raw.temp = p1.temp;
+                        raw.mateStat = p1.mateStat;
+                        raw.mateWarn = p1.mateWarn;
+
+                        raw.acPf = p1.acPf;
+                        raw.acPf = p1.acPf;
+                        raw.acPf = p1.acPf;
+                        raw.acPf = p1.acPf;
+                        #endregion
+
+
+
+
+
+
+                        if (p1.mateWarn != "")
+                        {
+                            // b.STATUS = p1.mateWarn;
+                            var err = new dtoError();
+                            err.Guid = Guid.NewGuid();
+                            err.Collector_Guid = CollectorId;
+                            err.Types = "逆變器";
+                            err.Sort = Sort;
+                            err.MateStat = p1.mateStat;
+                            err.MateWarn = p1.mateWarn;
+                            err.UploadTime = DateTime.Parse(up);
+                            await toError(err);
+                        }
+
+                    }
+
+                }
+                // * 寫入db BillionwattsPower
+                await toDBIvtPower(l);
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine("FetchPower : " + e.Message.ToString());
+                throw;
+            }
+        }
+
         public static async Task FetchPower(string siteNo, string dataNo, string startDatetime, string endDatetime, string token, int timeStamp, string url, int Sort, Guid CollectorId)
         {
             var _Para = new JObject();

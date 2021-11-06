@@ -36,6 +36,8 @@ namespace Partner.Model
             pDC(n) 有值的話，可以用,不過 有時 是， pDC(n)無值、vStr(n)有值
             pDC(1) 的組成，通常是 vStr(1)+ vStr(2)，組合而成的
             電壓 是均值、 電流是加總
+            2021/11/5:發電統計要用 dayPowerH 減掉上一筆,每日初始歸0
+            totalPowerH 是機器上線開始後的所有發電量
         */
         public Result2(string json)
         {
