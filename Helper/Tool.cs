@@ -12,7 +12,7 @@ namespace Partner.Helper
         {
             return new ConfigurationBuilder()
                 // todo 本機測試時下行要解除mark
-                .SetBasePath(Directory.GetCurrentDirectory())
+                // .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", false)
                 .Build();
         }
