@@ -1,4 +1,4 @@
-namespace Partner.Model
+namespace Bill.Model
 {
     public class dtoInverters
     {

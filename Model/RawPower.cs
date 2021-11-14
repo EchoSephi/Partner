@@ -1,6 +1,6 @@
 using System;
 
-namespace Partner.Model
+namespace Bill.Model
 {
     public class RawPower
     {
@@ -9,16 +9,18 @@ namespace Partner.Model
         public int Sort { get; set; }
         public double dayPowerHs { get; set; }
         public double Sunshine { get; set; }
-        public double Temperature { get; set; }
+        public double TemperatureS { get; set; }
+        public double TemperatureB { get; set; }
+        public double Wind { get; set; }
         public string dataNo { get; set; } // 設備識別碼
-        public string datatimeR { get; set; } // 觀測時間
-        public string acPf { get; set; } // 功率因素(PF)
-        public string freq { get; set; } // 頻率
-        public string dcPower { get; set; } // DC總功率(W)
-        public string acPower { get; set; } // AC總功率(W)
-        public string dayPowerH { get; set; } // 本日累積發電量(Wh)
-        public string totalPowerH { get; set; } // 總累積發電(Wh)
-        public string temp { get; set; } // 溫度(C)
+        public DateTime datatimeR { get; set; } // 觀測時間
+        public double acPf { get; set; } // 功率因素(PF)
+        public double freq { get; set; } // 頻率
+        public double dcPower { get; set; } // DC總功率(W)
+        public double acPower { get; set; } // AC總功率(W)
+        public double dayPowerH { get; set; } // 本日累積發電量(Wh)
+        public double totalPowerH { get; set; } // 總累積發電(Wh)
+        public double temp { get; set; } // 溫度(C)
         public string mateStat { get; set; } // 設備狀態碼
         public string mateWarn { get; set; } // 設備警示碼
 

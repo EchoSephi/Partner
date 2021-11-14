@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 
-namespace Partner.Helper
+namespace Bill.Helper
 {
     public class Tool
     {

@@ -1,8 +1,8 @@
 using System;
 
-namespace Partner.Model
+namespace Bill.Model
 {
-    public class dtoPartners
+    public class dtoBills
     {
         public string Account { get; set; }
         public string Password { get; set; }

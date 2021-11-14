@@ -1,6 +1,6 @@
 using System;
 
-namespace Partner.Model
+namespace Bill.Model
 {
     public class dtoBillionwattsPower
     {

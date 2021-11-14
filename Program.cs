@@ -10,16 +10,16 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Partner.Helper;
-using Partner.Model;
+using Bill.Helper;
+using Bill.Model;
 
-namespace Partner
+namespace Bill
 {
     class Program
     {
         public static string connSolar { get; set; }
         public static string connRoot { get; set; }
-        public static string connIvt { get; set; }
+        public static string connBill { get; set; }
         public static string account { get; set; }
         public static string password { get; set; }
         public static string url { get; set; }
@@ -28,7 +28,7 @@ namespace Partner
 
             connRoot = Tool.ReadFromAppSettings().Get<SolarModel>().Root;
             connSolar = Tool.ReadFromAppSettings().Get<SolarModel>().Solar;
-            connIvt = Tool.ReadFromAppSettings().Get<SolarModel>().Ivt;
+            connBill = Tool.ReadFromAppSettings().Get<SolarModel>().Bill;
             account = Tool.ReadFromAppSettings().Get<SolarModel>().account;
             password = Tool.ReadFromAppSettings().Get<SolarModel>().password;
             url = Tool.ReadFromAppSettings().Get<SolarModel>().url;
@@ -46,174 +46,15 @@ namespace Partner
                 ts = num;
             }
 
-            // await Reload(9610);
-
-            await Start(ts);
+            await Satrt(ts);
 
         }
 
-        public static async Task Test(int ts)
+        public static async Task Satrt(int ts)
         {
-            int ts1 = ts;
-            var Cases_Guid = Guid.Parse("124AC786-7E20-41B6-9F36-D38ECBDFA6BC");
 
-            var q1 = await FetchCollectors(Cases_Guid);
-            foreach (var p1 in q1)
-            {
-
-                await Task.Run(async () =>
-                {
-                    // CS1(p.Cases_Name);
-
-                    var CollectorId = p1.Guid;
-                    var siteNo = p1.MacAddress;
-                    var lt = DateTime.Parse("2021-10-08 05:59:00");
-                    var d = lt.AddMinutes(1);
-                    var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
-                    var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
-                    var ds = d.ToString("yyyy-MM-dd HH:00:00");
-                    var de = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:59:00");
-
-                    int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
-                    var sec = password + timeStamp;
-                    var token = Tool.MD5code(sec) + account;
-
-                    #region 逆變器
-                    var q2 = await FetchInverters(CollectorId);
-                    var total = 0.0;
-                    foreach (var p2 in q2)
-                    {
-                        var dataNo = p2.SerialNumber;
-                        var Sort = p2.Sort;
-                        var t = FetchPower_Test(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                        total = total + t;
-
-                        Console.WriteLine("total=" + total);
-                    }
-
-
-                    CS1("total: " + total);
-                    #endregion
-
-                });
-            }
-
-        }
-
-        public static async Task Reload(int ts)
-        {
-            int ts1 = ts;
-            var Cases_Guid = Guid.Parse("B3E36EEF-B12D-4CC8-B888-9080DF0B736F");
-
-            var q1 = await FetchCollectors(Cases_Guid);
-            foreach (var p1 in q1)
-            {
-
-                await Task.Run(async () =>
-                {
-                    // CS1(p.Cases_Name);
-
-                    var CollectorId = p1.Guid;
-                    var siteNo = p1.MacAddress;
-                    var lt = DateTime.Parse("2021-11-05 04:59:00");
-                    var d = lt.AddMinutes(1);
-                    var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
-                    var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
-                    var ds = d.ToString("yyyy-MM-dd HH:00:00");
-                    var de = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:59:00");
-
-                    int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
-                    var sec = password + timeStamp;
-                    var token = Tool.MD5code(sec) + account;
-
-                    #region 逆變器
-                    var q2 = await FetchInverters(CollectorId);
-                    foreach (var p2 in q2)
-                    {
-                        var dataNo = p2.SerialNumber;
-                        var Sort = p2.Sort;
-                        await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                    }
-
-                    // // * 產生後台可以檢視的資料
-                    // await toDB2(lt, CollectorId, siteNo);
-
-                    // * 寫入 PowerHour
-                    await toDB3(CollectorId, ds, de);
-
-                    // await toDB4(CollectorId, d.ToString("yyyy-MM-dd"), endDatetime);
-                    #endregion
-
-                    #region 日照計
-                    var q3 = await FetchSunlightMeter(CollectorId);
-                    if (q3 != null)
-                    {
-                        int i = 1;
-                        foreach (var p3 in q3)
-                        {
-                            var dataNo = p3.SerialNumber;
-                            var Sort = p3.Sort;
-                            await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
-                            i++;
-                        }
-                    }
-
-                    #endregion
-
-                    #region 環境溫度計
-                    var q4 = await FetchTempSurface(CollectorId);
-                    if (q4 != null)
-                    {
-                        foreach (var p4 in q4)
-                        {
-                            var dataNo = p4.SerialNumber;
-                            var Sort = p4.Sort;
-                            await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-
-                        }
-                    }
-
-                    #endregion
-
-                    #region 模組溫度計
-                    var q5 = await FetchTempBack(CollectorId);
-                    if (q5 != null)
-                    {
-                        foreach (var p5 in q5)
-                        {
-                            var dataNo = p5.SerialNumber;
-                            var Sort = p5.Sort;
-                            await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                        }
-                    }
-
-                    #endregion
-
-                    #region 風速計
-                    var q6 = await FetchWind(CollectorId);
-                    if (q6 != null)
-                    {
-                        foreach (var p6 in q6)
-                        {
-                            var dataNo = p6.SerialNumber;
-                            var Sort = p6.Sort;
-                            await FetchWindPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                        }
-                    }
-
-                    #endregion
-                });
-            }
-
-
-        }
-
-
-        public static async Task Start(int ts)
-        {
-            int ts1 = ts;
             // * 1.取得api廠商資料
-            var q = await FetchPartner();
+            var q = await FetchBill();
             foreach (var p in q)
             {
                 var account = p.Account;
@@ -224,218 +65,105 @@ namespace Partner
                 var q1 = await FetchCollectors(p.Cases_Guid);
                 foreach (var p1 in q1)
                 {
+                    var CollectorId = p1.Guid;
+                    var siteNo = p1.MacAddress;
+                    var lt = p1.LastUploadTime2;
 
-                    await Task.Run(async () =>
+                    if (lt != DateTime.Parse("2000-01-01 00:00:00.000"))
                     {
                         CS1(p.Cases_Name);
 
-                        var CollectorId = p1.Guid;
-                        var siteNo = p1.MacAddress;
-                        var lt = p1.LastUploadTime;
-
-                        // 最近常發現接收資料少一小時以上
-                        var d = lt.AddMinutes(1);
-                        if (ts == 5 && (d.AddMinutes(5) < DateTime.Now))
+                        var startDatetime = lt.AddMinutes(1).ToString("yyyy-MM-dd HH:mm:ss");
+                        var endDatetime = lt.AddMinutes(ts).ToString("yyyy-MM-dd HH:mm:ss.fff");
+                        if (lt.AddMinutes(ts) <= DateTime.Now)
                         {
-                            try
+                            if (lt.Hour < 20 && lt.Hour > 4)
                             {
-                                ts1 = int.Parse(Math.Round((DateTime.Now - d).TotalHours * 60.0, 0).ToString());
+
+                                var ds = lt.ToString("yyyy-MM-dd HH:00:00.000");
+                                var de = lt.AddMinutes(ts).ToString("yyyy-MM-dd HH:59:00.000");
+                                int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
+                                var sec = password + timeStamp;
+                                var token = Tool.MD5code(sec) + account;
+
+                                #region 逆變器
+                                var q2 = await FetchInverters(CollectorId);
+                                foreach (var p2 in q2)
+                                {
+                                    var dataNo = p2.SerialNumber;
+                                    var Sort = p2.Sort;
+                                    await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                                }
+                                #endregion
+
+                                #region 日照計
+                                var q3 = await FetchSunlightMeter(CollectorId);
+                                if (q3 != null)
+                                {
+                                    int i = 1;
+                                    foreach (var p3 in q3)
+                                    {
+                                        var dataNo = p3.SerialNumber;
+                                        var Sort = p3.Sort;
+                                        await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
+                                        i++;
+                                    }
+                                }
+
+                                #endregion
+
+                                #region 環境溫度計
+                                var q4 = await FetchTempSurface(CollectorId);
+                                if (q4 != null)
+                                {
+                                    foreach (var p4 in q4)
+                                    {
+                                        var dataNo = p4.SerialNumber;
+                                        var Sort = p4.Sort;
+                                        await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+
+                                    }
+                                }
+
+                                #endregion
+
+                                #region 模組溫度計
+                                var q5 = await FetchTempBack(CollectorId);
+                                if (q5 != null)
+                                {
+                                    foreach (var p5 in q5)
+                                    {
+                                        var dataNo = p5.SerialNumber;
+                                        var Sort = p5.Sort;
+                                        await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                                    }
+                                }
+
+                                #endregion
+
+                                #region 風速計
+                                var q6 = await FetchWind(CollectorId);
+                                if (q6 != null)
+                                {
+                                    foreach (var p6 in q6)
+                                    {
+                                        var dataNo = p6.SerialNumber;
+                                        var Sort = p6.Sort;
+                                        await FetchWindPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
+                                    }
+                                }
+
+                                #endregion
                             }
-                            catch (System.Exception)
-                            {
-                                ts1 = 5;
-                            }
+                            await setLastDay(CollectorId, endDatetime);
                         }
-                        else
-                        {
-                            ts1 = ts;
-                        }
-
-                        var startDatetime = d.ToString("yyyy-MM-dd HH:mm:ss");
-                        Console.WriteLine(p.Cases_Name + " " + startDatetime);
-                        Console.WriteLine("取得 " + (ts1) + " 分鐘資料 ");
-                        var endDatetime = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:mm:ss");
-                        var ds = d.ToString("yyyy-MM-dd HH:00:00");
-                        var de = d.AddMinutes(ts1).ToString("yyyy-MM-dd HH:59:00");
-
-                        int timeStamp = Convert.ToInt32(DateTime.UtcNow.AddHours(8).Subtract(new DateTime(1970, 1, 1)).TotalSeconds);
-                        var sec = password + timeStamp;
-                        var token = Tool.MD5code(sec) + account;
-
-                        #region 逆變器
-                        var q2 = await FetchInverters(CollectorId);
-                        foreach (var p2 in q2)
-                        {
-                            var dataNo = p2.SerialNumber;
-                            var Sort = p2.Sort;
-                            await FetchPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                        }
-
-                        // // * 產生後台可以檢視的資料
-                        // await toDB2(lt, CollectorId, siteNo);
-
-                        // * 寫入 PowerHour
-                        await toDB3(CollectorId, ds, de);
-
-                        await toDB4(CollectorId, d.ToString("yyyy-MM-dd"), endDatetime);
-                        #endregion
-
-                        #region 日照計
-                        var q3 = await FetchSunlightMeter(CollectorId);
-                        if (q3 != null)
-                        {
-                            int i = 1;
-                            foreach (var p3 in q3)
-                            {
-                                var dataNo = p3.SerialNumber;
-                                var Sort = p3.Sort;
-                                await FetchSunPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId, i);
-                                i++;
-                            }
-                        }
-
-                        #endregion
-
-                        #region 環境溫度計
-                        var q4 = await FetchTempSurface(CollectorId);
-                        if (q4 != null)
-                        {
-                            foreach (var p4 in q4)
-                            {
-                                var dataNo = p4.SerialNumber;
-                                var Sort = p4.Sort;
-                                await FetchTempSurfacePower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-
-                            }
-                        }
-
-                        #endregion
-
-                        #region 模組溫度計
-                        var q5 = await FetchTempBack(CollectorId);
-                        if (q5 != null)
-                        {
-                            foreach (var p5 in q5)
-                            {
-                                var dataNo = p5.SerialNumber;
-                                var Sort = p5.Sort;
-                                await FetchTempBackPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                            }
-                        }
-
-                        #endregion
-
-                        #region 風速計
-                        var q6 = await FetchWind(CollectorId);
-                        if (q6 != null)
-                        {
-                            foreach (var p6 in q6)
-                            {
-                                var dataNo = p6.SerialNumber;
-                                var Sort = p6.Sort;
-                                await FetchWindPower(siteNo, dataNo, startDatetime, endDatetime, token, timeStamp, url, Sort, CollectorId);
-                            }
-                        }
-
-                        #endregion
-                    });
+                    }
                 }
-
             }
+            CS1("ENd");
         }
 
         #region 逆變器
-        public static async Task FetchPower_New(string siteNo, string dataNo, string startDatetime, string endDatetime, string token, int timeStamp, string url, int Sort, Guid CollectorId)
-        {
-            var _Para = new JObject();
-            _Para["siteNo"] = siteNo;
-            _Para["dataNo"] = dataNo;
-            _Para["startDatetime"] = startDatetime;
-            _Para["endDatetime"] = endDatetime;
-
-            var _Raw = new JObject();
-            _Raw["api"] = "ctInverterRawData";
-            _Raw["token"] = token;
-            _Raw["langCode"] = "zh_TW";
-            _Raw["sendTimestamp"] = timeStamp;
-            _Raw["para"] = _Para;
-
-            string JsonString = JsonConvert.SerializeObject(_Raw);
-            var str = string.Format("逆變器 dataNo:{0}:{1}--", dataNo, startDatetime);
-            CS1(str);
-
-            try
-            {
-                var l = new List<dtoBillionwattsPower>();
-                using (var client = new HttpClient())
-                {
-                    var res = client.PostAsync(url, new StringContent(JsonString, Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); ;
-                    var res2 = res.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                    Result1 r = new Result1(res2);
-                    foreach (var p in r.data)
-                    {
-                        var p1 = new Result2(p.ToString());
-                        var up = p1.datatimeR;
-
-                        var raw = new RawPower();
-                        raw.Guid = Guid.NewGuid();
-                        raw.Collector_Guid = CollectorId;
-                        raw.Sort = Sort;
-                        // todo
-                        // dayPowerHs
-                        // Sunshine
-                        // Temperature
-                        #region api
-                        raw.dataNo = dataNo;
-                        raw.datatimeR = up;
-                        raw.acPf = p1.acPf;
-                        raw.freq = p1.freq;
-                        raw.dcPower = p1.dcPower;
-                        raw.acPower = p1.acPower;
-                        raw.dayPowerH = p1.dayPowerH;
-                        raw.totalPowerH = p1.totalPowerH;
-                        raw.temp = p1.temp;
-                        raw.mateStat = p1.mateStat;
-                        raw.mateWarn = p1.mateWarn;
-
-                        raw.acPf = p1.acPf;
-                        raw.acPf = p1.acPf;
-                        raw.acPf = p1.acPf;
-                        raw.acPf = p1.acPf;
-                        #endregion
-
-
-
-
-
-
-                        if (p1.mateWarn != "")
-                        {
-                            // b.STATUS = p1.mateWarn;
-                            var err = new dtoError();
-                            err.Guid = Guid.NewGuid();
-                            err.Collector_Guid = CollectorId;
-                            err.Types = "逆變器";
-                            err.Sort = Sort;
-                            err.MateStat = p1.mateStat;
-                            err.MateWarn = p1.mateWarn;
-                            err.UploadTime = DateTime.Parse(up);
-                            await toError(err);
-                        }
-
-                    }
-
-                }
-                // * 寫入db BillionwattsPower
-                await toDBIvtPower(l);
-            }
-            catch (System.Exception e)
-            {
-                Console.WriteLine("FetchPower : " + e.Message.ToString());
-                throw;
-            }
-        }
-
         public static async Task FetchPower(string siteNo, string dataNo, string startDatetime, string endDatetime, string token, int timeStamp, string url, int Sort, Guid CollectorId)
         {
             var _Para = new JObject();
@@ -452,12 +180,12 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            var str = string.Format("逆變器 dataNo:{0}:{1}--", dataNo, startDatetime);
+            var str = string.Format("逆變器 dataNo:{0}:{1}", dataNo, startDatetime);
             CS1(str);
 
             try
             {
-                var l = new List<dtoBillionwattsPower>();
+
                 using (var client = new HttpClient())
                 {
                     var res = client.PostAsync(url, new StringContent(JsonString, Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); ;
@@ -466,323 +194,13 @@ namespace Partner
                     foreach (var p in r.data)
                     {
                         var p1 = new Result2(p.ToString());
-
-                        /* DC總功率(W) */
-                        var DcPowerTotal = 0.0;
-                        if (p1.dcPower != null)
-                        {
-                            DcPowerTotal = DcPowerTotal + double.Parse(p1.dcPower);
-                        }
-
-                        /* AC總功率(W) */
-                        var AcPowerTotal = 0.0;
-                        if (p1.acPower != null)
-                        {
-                            AcPowerTotal = AcPowerTotal + double.Parse(p1.acPower);
-                        }
-
-                        #region DC電壓,DC電流
-
-                        /* DC功率 pDC(n) 取加總 */
-                        var pDcTotal = 0.0;
-
-                        /* DC電壓 vDc(n) 平均值 */
-                        var vDcTotal = 0.0;
-                        var vDcAvg = 0;
-                        var vDcPower = 0.0; //* 寫入db的result
-
-                        /* DC電流 cDC(n) 取加總 */
-                        var cDcTotal = 0.0; //* 寫入db的result
-
-                        if (p1.pDc1 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc1);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc1);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc1);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc2 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc2);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc2);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc2);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc3 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc3);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc3);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc3);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc4 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc4);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc4);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc4);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc5 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc5);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc5);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc5);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc6 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc6);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc6);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc6);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc7 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc7);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc7);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc7);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc8 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc8);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc8);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc8);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc9 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc9);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc9);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc9);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc10 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc10);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc10);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc10);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc12 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc12);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc12);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc12);
-                            vDcAvg = vDcAvg + 1;
-                        }
-                        if (p1.pDc12 != null)
-                        {
-                            pDcTotal = pDcTotal + double.Parse(p1.pDc12);
-                            vDcTotal = vDcTotal + double.Parse(p1.vDc12);
-                            cDcTotal = cDcTotal + double.Parse(p1.cDc12);
-                            vDcAvg = vDcAvg + 1;
-                        }
-
-                        if (vDcAvg > 0)
-                        {
-                            vDcPower = vDcTotal / vDcAvg;
-                        }
-
-                        #endregion
-
-                        #region AC電壓,AC電流
-
-                        /* AC功率 pAC(n) 取加總*/
-                        var pAcTotal = 0.0;
-
-                        /* AC電壓 vAC(n) 平均值 */
-                        var vAcTotal = 0.0;
-                        var vAcAvg = 0;
-                        var vAcPower = 0.0; //* 寫入db的result
-
-                        /* AC電流 cAC(n) 取加總(感覺要取平均值才正確) */
-                        var cAcTotal = 0.0;
-                        var cAcPower = 0.0; //* 寫入db的result
-
-                        if (p1.vAc1 != null)
-                        {
-                            pAcTotal = pAcTotal + double.Parse(p1.pAc1);
-                            vAcTotal = vAcTotal + double.Parse(p1.vAc1);
-                            cAcTotal = cAcTotal + double.Parse(p1.cAc1);
-                            vAcAvg = vAcAvg + 1;
-                        }
-                        if (p1.vAc2 != null)
-                        {
-                            pAcTotal = pAcTotal + double.Parse(p1.pAc2);
-                            vAcTotal = vAcTotal + double.Parse(p1.vAc2);
-                            cAcTotal = cAcTotal + double.Parse(p1.cAc2);
-                            vAcAvg = vAcAvg + 1;
-                        }
-                        if (p1.vAc3 != null)
-                        {
-                            pAcTotal = pAcTotal + double.Parse(p1.pAc3);
-                            vAcTotal = vAcTotal + double.Parse(p1.vAc3);
-                            cAcTotal = cAcTotal + double.Parse(p1.cAc3);
-                            vAcAvg = vAcAvg + 1;
-                        }
-
-                        if (vAcAvg > 0)
-                        {
-                            vAcPower = vAcTotal / vAcAvg;
-                            cAcPower = cAcTotal / vAcAvg;
-                        }
-                        #endregion
-
-                        #region 組串功率,電壓,電流
-                        // var pStrTotal = 0.0;
-                        // var vStrTotal = 0.0;
-                        // var cStrTotal = 0.0;
-
-                        // if (p1.pStr1 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr1);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr1);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr1);
-                        // }
-
-                        // if (p1.pStr2 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr2);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr2);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr2);
-                        // }
-
-                        // if (p1.pStr3 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr3);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr3);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr3);
-                        // }
-
-                        // if (p1.pStr4 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr4);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr4);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr4);
-                        // }
-
-                        // if (p1.pStr5 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr5);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr5);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr5);
-                        // }
-
-                        // if (p1.pStr6 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr6);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr6);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr6);
-                        // }
-
-                        // if (p1.pStr7 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr7);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr7);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr7);
-                        // }
-
-                        // if (p1.pStr8 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr8);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr8);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr8);
-                        // }
-
-                        // if (p1.pStr9 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr9);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr9);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr9);
-                        // }
-
-                        // if (p1.pStr10 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr10);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr10);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr10);
-                        // }
-
-                        // if (p1.pStr11 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr11);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr11);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr11);
-                        // }
-
-                        // if (p1.pStr12 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr12);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr12);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr12);
-                        // }
-
-                        // if (p1.pStr13 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr13);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr13);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr13);
-                        // }
-
-                        // if (p1.pStr14 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr14);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr14);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr14);
-                        // }
-
-                        // if (p1.pStr15 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr15);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr15);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr15);
-                        // }
-
-                        // if (p1.pStr16 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr16);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr16);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr16);
-                        // }
-
-                        // if (p1.pStr17 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr17);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr17);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr17);
-                        // }
-
-                        // if (p1.pStr18 != null)
-                        // {
-                        //     pStrTotal = pStrTotal + double.Parse(p1.pStr18);
-                        //     vStrTotal = vStrTotal + double.Parse(p1.vStr18);
-                        //     cStrTotal = cStrTotal + double.Parse(p1.cStr18);
-                        // }
-                        #endregion
-
                         var up = p1.datatimeR;
 
-                        var b = new dtoBillionwattsPower();
-                        b.Guid = Guid.NewGuid();
-                        b.Collector_Guid = CollectorId;
-                        b.Sort = Sort;
-                        b.ACPower = Math.Round(AcPowerTotal, 2);
-                        b.DCPower = Math.Round(DcPowerTotal, 2);
-                        b.vDc = Math.Round(vDcPower, 2);
-                        b.cDc = Math.Round(cDcTotal, 2);
-                        b.vAc = Math.Round(vAcPower, 2);
-                        b.cAc = Math.Round(cAcPower, 2);
-                        // b.vAC = vStrTotal == 0 ? vAcTotal : vStrTotal;
-                        // b.cAC = cStrTotal == 0 ? cAcTotal : cStrTotal;
 
-                        b.Sunshine = 0;
-                        b.TemperatureB = 0;
-                        b.TemperatureS = 0;
-                        b.Wind = 0;
+                        await toRawPower(p1, CollectorId, Sort, dataNo, DateTime.Parse(up));
+
                         if (p1.mateWarn != "")
                         {
-                            // b.STATUS = p1.mateWarn;
                             var err = new dtoError();
                             err.Guid = Guid.NewGuid();
                             err.Collector_Guid = CollectorId;
@@ -793,71 +211,182 @@ namespace Partner
                             err.UploadTime = DateTime.Parse(up);
                             await toError(err);
                         }
-                        // else
-                        // {
-                        //     b.STATUS = "";
-                        // }
 
-                        b.STATUS = "";
-                        b.UploadTime = DateTime.Parse(up);
-                        l.Add(b);
                     }
 
                 }
-                // * 寫入db BillionwattsPower
-                await toDBIvtPower(l);
             }
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchPower : " + e.Message.ToString());
-                throw;
             }
         }
 
-        public static double FetchPower_Test(string siteNo, string dataNo, string startDatetime, string endDatetime, string token, int timeStamp, string url, int Sort, Guid CollectorId)
+        public static async Task toRawPower(Result2 p1, Guid CollectorId, int Sort, string dataNo, DateTime up)
         {
-            var _Para = new JObject();
-            _Para["siteNo"] = siteNo;
-            _Para["dataNo"] = dataNo;
-            _Para["startDatetime"] = startDatetime;
-            _Para["endDatetime"] = endDatetime;
 
-            var _Raw = new JObject();
-            _Raw["api"] = "ctInverterRawData";
-            _Raw["token"] = token;
-            _Raw["langCode"] = "zh_TW";
-            _Raw["sendTimestamp"] = timeStamp;
-            _Raw["para"] = _Para;
+            var raw = new RawPower();
+            raw.Guid = Guid.NewGuid();
+            raw.Collector_Guid = CollectorId;
+            raw.Sort = Sort;
 
-            string JsonString = JsonConvert.SerializeObject(_Raw);
-            var str = string.Format("逆變器 dataNo:{0}:{1}--", dataNo, startDatetime);
-            CS1(str);
+            raw.dataNo = dataNo;
+            raw.datatimeR = up;
+            raw.acPf = NullToZero(p1.acPf);
+            raw.freq = NullToZero(p1.freq);
+            raw.dcPower = NullToZero(p1.dcPower);
+            raw.acPower = NullToZero(p1.acPower);
+            raw.dayPowerH = NullToZero(p1.dayPowerH);
+            raw.totalPowerH = NullToZero(p1.totalPowerH);
+            raw.temp = NullToZero(p1.temp);
+            raw.mateStat = NullToString(p1.mateStat);
+            raw.mateWarn = NullToString(p1.mateWarn);
 
-            using (var client = new HttpClient())
+            var last = await LastDayPowerH(CollectorId, up, Sort);
+            var dayPowerHs = raw.dayPowerH - last;
+            // todo test
+            if (dayPowerHs < 0)
             {
-                var res = client.PostAsync(url, new StringContent(JsonString, Encoding.UTF8, "application/json")).GetAwaiter().GetResult(); ;
-                var res2 = res.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                Result1 r = new Result1(res2);
-                var LastdayPowerH = 0.0;
-                var total = 0.0;
-                foreach (var p in r.data)
-                {
-                    var p1 = new Result2(p.ToString());
-
-                    var up = p1.datatimeR;
-                    if (double.Parse(p1.dayPowerH) > 0)
-                    {
-                        Console.WriteLine(up);
-                    }
-                    var dayPowerH = double.Parse(p1.dayPowerH) - LastdayPowerH;
-
-                    LastdayPowerH = double.Parse(p1.dayPowerH);
-
-                    total = total + dayPowerH;
-                }
-                return total;
+                dayPowerHs = 0.0;
             }
+            raw.dayPowerHs = dayPowerHs;
+            raw.Sunshine = 0.0;
+            raw.TemperatureS = 0.0;
+            raw.TemperatureB = 0.0;
+            raw.Wind = 0.0;
 
+            raw.pDc1 = NullToString(p1.pDc1);
+            raw.vDc1 = NullToString(p1.vDc1);
+            raw.cDc1 = NullToString(p1.cDc1);
+            raw.pDc2 = NullToString(p1.pDc2);
+            raw.vDc2 = NullToString(p1.vDc2);
+            raw.cDc2 = NullToString(p1.cDc2);
+            raw.pDc3 = NullToString(p1.pDc3);
+            raw.vDc3 = NullToString(p1.vDc3);
+            raw.cDc3 = NullToString(p1.cDc3);
+            raw.pDc4 = NullToString(p1.pDc4);
+            raw.vDc4 = NullToString(p1.vDc4);
+            raw.cDc4 = NullToString(p1.cDc4);
+            raw.pDc5 = NullToString(p1.pDc5);
+            raw.vDc5 = NullToString(p1.vDc5);
+            raw.cDc5 = NullToString(p1.cDc5);
+            raw.pDc6 = NullToString(p1.pDc6);
+            raw.vDc6 = NullToString(p1.vDc6);
+            raw.cDc6 = NullToString(p1.cDc6);
+            raw.pDc7 = NullToString(p1.pDc7);
+            raw.vDc7 = NullToString(p1.vDc7);
+            raw.cDc7 = NullToString(p1.cDc7);
+            raw.pDc8 = NullToString(p1.pDc8);
+            raw.vDc8 = NullToString(p1.vDc8);
+            raw.cDc8 = NullToString(p1.cDc8);
+            raw.pDc9 = NullToString(p1.pDc9);
+            raw.vDc9 = NullToString(p1.vDc9);
+            raw.cDc9 = NullToString(p1.cDc9);
+            raw.pDc10 = NullToString(p1.pDc10);
+            raw.vDc10 = NullToString(p1.vDc10);
+            raw.cDc10 = NullToString(p1.cDc10);
+            raw.pDc11 = NullToString(p1.pDc11);
+            raw.vDc11 = NullToString(p1.vDc11);
+            raw.cDc11 = NullToString(p1.cDc11);
+            raw.pDc12 = NullToString(p1.pDc12);
+            raw.vDc12 = NullToString(p1.vDc12);
+            raw.cDc12 = NullToString(p1.cDc12);
+            raw.pAc1 = NullToString(p1.pAc1);
+            raw.vAc1 = NullToString(p1.vAc1);
+            raw.cAc1 = NullToString(p1.cAc1);
+            raw.pAc2 = NullToString(p1.pAc2);
+            raw.vAc2 = NullToString(p1.vAc2);
+            raw.cAc2 = NullToString(p1.cAc2);
+            raw.pAc3 = NullToString(p1.pAc3);
+            raw.vAc3 = NullToString(p1.vAc3);
+            raw.cAc3 = NullToString(p1.cAc3);
+            raw.pStr1 = NullToString(p1.pStr1);
+            raw.vStr1 = NullToString(p1.vStr1);
+            raw.cStr1 = NullToString(p1.cStr1);
+            raw.pStr2 = NullToString(p1.pStr2);
+            raw.vStr2 = NullToString(p1.vStr2);
+            raw.cStr2 = NullToString(p1.cStr2);
+            raw.pStr3 = NullToString(p1.pStr3);
+            raw.vStr3 = NullToString(p1.vStr3);
+            raw.cStr3 = NullToString(p1.cStr3);
+            raw.pStr4 = NullToString(p1.pStr4);
+            raw.vStr4 = NullToString(p1.vStr4);
+            raw.cStr4 = NullToString(p1.cStr4);
+            raw.pStr5 = NullToString(p1.pStr5);
+            raw.vStr5 = NullToString(p1.vStr5);
+            raw.cStr5 = NullToString(p1.cStr5);
+            raw.pStr6 = NullToString(p1.pStr6);
+            raw.vStr6 = NullToString(p1.vStr6);
+            raw.cStr6 = NullToString(p1.cStr6);
+            raw.pStr7 = NullToString(p1.pStr7);
+            raw.vStr7 = NullToString(p1.vStr7);
+            raw.cStr7 = NullToString(p1.cStr7);
+            raw.pStr8 = NullToString(p1.pStr8);
+            raw.vStr8 = NullToString(p1.vStr8);
+            raw.cStr8 = NullToString(p1.cStr8);
+            raw.pStr9 = NullToString(p1.pStr9);
+            raw.vStr9 = NullToString(p1.vStr9);
+            raw.cStr9 = NullToString(p1.cStr9);
+            raw.pStr10 = NullToString(p1.pStr10);
+            raw.vStr10 = NullToString(p1.vStr10);
+            raw.cStr10 = NullToString(p1.cStr10);
+            raw.pStr11 = NullToString(p1.pStr11);
+            raw.vStr11 = NullToString(p1.vStr11);
+            raw.cStr11 = NullToString(p1.cStr11);
+            raw.pStr12 = NullToString(p1.pStr12);
+            raw.vStr12 = NullToString(p1.vStr12);
+            raw.cStr12 = NullToString(p1.cStr12);
+            raw.pStr13 = NullToString(p1.pStr13);
+            raw.vStr13 = NullToString(p1.vStr13);
+            raw.cStr13 = NullToString(p1.cStr13);
+            raw.pStr14 = NullToString(p1.pStr14);
+            raw.vStr14 = NullToString(p1.vStr14);
+            raw.cStr14 = NullToString(p1.cStr14);
+            raw.pStr15 = NullToString(p1.pStr15);
+            raw.vStr15 = NullToString(p1.vStr15);
+            raw.cStr15 = NullToString(p1.cStr15);
+            raw.pStr16 = NullToString(p1.pStr16);
+            raw.vStr16 = NullToString(p1.vStr16);
+            raw.cStr16 = NullToString(p1.cStr16);
+            raw.pStr17 = NullToString(p1.pStr17);
+            raw.vStr17 = NullToString(p1.vStr17);
+            raw.cStr17 = NullToString(p1.cStr17);
+            raw.pStr18 = NullToString(p1.pStr18);
+            raw.vStr18 = NullToString(p1.vStr18);
+            raw.cStr18 = NullToString(p1.cStr18);
+            raw.CreateTime = DateTime.Now;
+            var insertQuery = "insert into RawPower VALUES " +
+                "(@Guid ,@Collector_Guid ,@Sort ,@dayPowerHs ,@Sunshine ,@TemperatureS,@TemperatureB,@Wind" +
+                ",@dataNo,@datatimeR ,@acPf,@freq,@dcPower ,@acPower ,@dayPowerH ,@totalPowerH ,@temp,@mateStat,@mateWarn" +
+                ",@pDc1,@vDc1,@cDc1,@pDc2,@vDc2,@cDc2,@pDc3,@vDc3,@cDc3,@pDc4,@vDc4,@cDc4,@pDc5,@vDc5,@cDc5,@pDc6,@vDc6,@cDc6,@pDc7,@vDc7,@cDc7" +
+                ",@pDc8,@vDc8,@cDc8,@pDc9,@vDc9,@cDc9,@pDc10,@vDc10,@cDc10,@pDc11,@vDc11,@cDc11,@pDc12,@vDc12,@cDc12" +
+                ",@pAc1,@vAc1,@cAc1,@pAc2,@vAc2,@cAc2,@pAc3,@vAc3,@cAc3,@pStr1,@vStr1,@cStr1,@pStr2,@vStr2,@cStr2" +
+                ",@pStr3,@vStr3,@cStr3,@pStr4,@vStr4,@cStr4,@pStr5,@vStr5,@cStr5,@pStr6,@vStr6,@cStr6,@pStr7,@vStr7,@cStr7" +
+                ",@pStr8,@vStr8,@cStr8,@pStr9,@vStr9,@cStr9,@pStr10,@vStr10,@cStr10,@pStr11,@vStr11,@cStr11,@pStr12,@vStr12,@cStr12" +
+                ",@pStr13,@vStr13,@cStr13,@pStr14,@vStr14,@cStr14,@pStr15,@vStr15,@cStr15" +
+                ",@pStr16,@vStr16,@cStr16,@pStr17,@vStr17,@cStr17,@pStr18,@vStr18,@cStr18,@CreateTime)";
+            using (var cn = new SqlConnection(connBill))
+            {
+                var result = await cn.ExecuteAsync(insertQuery, raw);
+            }
+        }
+
+        public static async Task<double> LastDayPowerH(Guid CollectorId, DateTime up, int Sort)
+        {
+            using (var cn = new SqlConnection(connBill))
+            {
+                var sqlstr = string.Format("execute SP_GetLastDayPowerH '{0}','{1}',{2};", CollectorId, up.ToString("yyyy-MM-dd HH:mm:ss.fff"), Sort);
+                var result = await cn.QueryAsync<dtoDayPowerH>(sqlstr);
+                if (result.FirstOrDefault() != null)
+                {
+                    return result.FirstOrDefault().dayPowerH;
+                }
+                else
+                {
+                    return 0.0;
+                }
+
+            }
         }
 
         public static async Task toError(dtoError dto)
@@ -873,162 +402,44 @@ namespace Partner
             }
             catch (System.Exception e)
             {
-                Console.WriteLine("toDBIvtPower :" + e.Message.ToString());
-                throw;
+                Console.WriteLine("toError :" + e.Message.ToString());
             }
         }
 
-        public static async Task toDBIvtPower(List<dtoBillionwattsPower> bsp)
-        {
-            //CS1("逆變器 toDBIvtPower");
-            try
-            {
-                using (var cn = new SqlConnection(connSolar))
-                {
-                    foreach (var p in bsp)
-                    {
-                        string insertQuery = @"INSERT INTO BillionwattsPower (Guid, Collector_Guid, Sort, ACPower, DCPower , Sunshine , TemperatureS , TemperatureB , Wind , STATUS , UploadTime , vDc , cDc , vAc , cAc ) " +
-                        "VALUES (@Guid, @Collector_Guid, @Sort, @ACPower, @DCPower, @Sunshine , @TemperatureS , @TemperatureB , @Wind , @STATUS , @UploadTime , @vDc , @cDc , @vAc , @cAc)";
 
-                        var result = await cn.ExecuteAsync(insertQuery, p);
-                    }
-                }
-            }
-            catch (System.Exception e)
-            {
-                Console.WriteLine("toDBIvtPower :" + e.Message.ToString());
-                throw;
-            }
-        }
-
-        // public static async Task toDB2(DateTime dt, Guid CollectorId, string siteNo)
+        // 宜蘭展鋒案場 專用??
+        // public static async Task toDB3(Guid CollectorId, string startDatetime, string endDatetime)
         // {
-        //     //CS1("逆變器 toDB2");
-        //     var tbn = "ivtS_" + siteNo;
-        //     var info = "";
-        //     try
+        //     var SqlStr = string.Format("Execute SP_PowertoHour '{0}' , '{1}' , '{2}' ; ", CollectorId.ToString(), startDatetime, endDatetime);
+        //     using (var cn = new SqlConnection(connSolar))
         //     {
-        //         using (var cn = new SqlConnection(connIvt))
+        //         try
         //         {
-        //             var d = dt.ToString("yyyy-MM-dd HH:mm:ss.fff");
-        //             string str = string.Format("Execute SP_GetBillionwattsPowerRaw '{0}','{1}';", CollectorId.ToString(), d);
-        //             // var result = cn.Query<dtoIvt>(str).ToList();
-        //             var result1 = await cn.QueryAsync<dtoIvt>(str);
-        //             if (result1.FirstOrDefault() == null)
-        //             {
-        //                 return;
-        //             }
-
-        //             var result = result1.ToList();
-
-        //             var q = result.GroupBy(x => x.UploadTime, (u, s) => new
-        //             {
-        //                 UploadTime = u,
-        //                 MaxSort = s.Max(p => p.Sort)
-        //             });
-
-        //             Dictionary<string, dtoIvt> dict;
-        //             dict = result.ToDictionary(
-        //                                 o => string.Format("{0},{1}", o.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), o.Sort),
-        //                                 o => o);
-
-        //             foreach (var p in q)
-        //             {
-        //                 var d1 = p.UploadTime;
-        //                 var cnt = p.MaxSort;
-
-        //                 var SqlStr = "insert into " + tbn + " (UploadTime,info,";
-        //                 for (int i = 1; i < cnt + 1; i++)
-        //                 {
-        //                     SqlStr = SqlStr + "M" + i.ToString() + ",";
-        //                 }
-
-        //                 SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
-        //                 SqlStr = SqlStr + ") values ('" + d1.ToString("yyyy-MM-dd HH:mm:ss.fff") + "','" + info + "',";
-
-        //                 for (int i = 1; i < p.MaxSort + 1; i++)
-        //                 {
-        //                     try
-        //                     {
-        //                         var Ac_Power = 0.0;
-        //                         var q1 = dict[string.Format("{0},{1}", d1.ToString("yyyy-MM-dd HH:mm:ss.fff"), i.ToString())];
-        //                         Ac_Power = double.Parse(q1.ACPower.ToString());
-        //                         SqlStr = SqlStr + Math.Round(Ac_Power, 2) + ",";
-        //                     }
-        //                     catch (Exception e)
-        //                     {
-        //                         var s = e.Message.ToString();
-        //                         SqlStr = SqlStr + "0,";
-        //                         // Console.WriteLine("toDB2 : i=" + i.ToString() + " , " + e.Message);
-        //                     }
-        //                 }
-
-        //                 SqlStr = SqlStr.Substring(0, SqlStr.Length - 1);
-        //                 SqlStr = SqlStr + ")";
-
-        //                 try
-        //                 {
-        //                     await cn.ExecuteAsync(SqlStr);
-        //                 }
-        //                 catch (System.Exception e)
-        //                 {
-        //                     Console.WriteLine("toDB2 :" + e.Message.ToString());
-        //                     throw;
-        //                 }
-        //             }
+        //             await cn.ExecuteAsync(SqlStr);
         //         }
-
-        //     }
-        //     catch (System.Exception e2)
-        //     {
-        //         Console.WriteLine("toDB2-C :" + e2.Message.ToString());
+        //         catch (System.Exception e)
+        //         {
+        //             Console.WriteLine("toDB3 :" + e.Message.ToString());
+        //         }
         //     }
         // }
-
-        public static async Task toDB3(Guid CollectorId, string startDatetime, string endDatetime)
+        public static async Task setLastDay(Guid CollectorId, string up)
         {
-            //CS1("逆變器 toDB3");
-            var SqlStr = string.Format("Execute SP_PowertoHour '{0}' , '{1}' , '{2}' ; ", CollectorId.ToString(), startDatetime, endDatetime);
-            using (var cn = new SqlConnection(connSolar))
-            {
-                try
-                {
-                    await cn.ExecuteAsync(SqlStr);
-                }
-                catch (System.Exception e)
-                {
-                    Console.WriteLine("toDB3 :" + e.Message.ToString());
-                    throw;
-                }
-            }
-        }
-
-        public static async Task toDB4(Guid CollectorId, string startDatetime, string endDatetime)
-        {
-            //CS1("逆變器 toDB4");
-            var SqlStr = string.Format("Execute SP_GetCollectorDay '{0}' , '{1}' , '{2}' ;", CollectorId.ToString(), startDatetime, endDatetime);
             using (var cn = new SqlConnection(connRoot))
             {
-                try
-                {
-                    await cn.ExecuteAsync(SqlStr);
-                }
-                catch (System.Exception e)
-                {
-                    Console.WriteLine("toDB4 :" + e.Message.ToString());
-                    throw;
-                }
+                var SqlStr = string.Format("update Collector set LastUploadTime2 = '{1}' where Guid = '{0}';", CollectorId.ToString(), up);
+                await cn.ExecuteAsync(SqlStr);
             }
         }
 
-        public static async Task<List<dtoPartners>> FetchPartner()
+        public static async Task<List<dtoBills>> FetchBill()
         {
             try
             {
                 using (var cn = new SqlConnection(connRoot))
                 {
                     var SqlStr1 = string.Format("Execute SP_GetPartners;");
-                    var q = await cn.QueryAsync<dtoPartners>(SqlStr1);
+                    var q = await cn.QueryAsync<dtoBills>(SqlStr1);
                     if (q.FirstOrDefault() != null)
                     {
                         return q.ToList();
@@ -1041,8 +452,8 @@ namespace Partner
             }
             catch (System.Exception e)
             {
-                Console.WriteLine("FetchPartner :" + e.Message.ToString());
-                throw;
+                Console.WriteLine("FetchBill :" + e.Message.ToString());
+                return null;
             }
 
         }
@@ -1051,7 +462,7 @@ namespace Partner
         {
             try
             {
-                using (var cn = new SqlConnection(connRoot))
+                using (var cn = new SqlConnection(connBill))
                 {
                     var SqlStr1 = string.Format("Execute SP_GetCollectors '{0}';", CaseId.ToString());
                     var q = await cn.QueryAsync<dtoCollector>(SqlStr1);
@@ -1068,7 +479,7 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchCollectors :" + e.Message.ToString());
-                throw;
+                return null;
             }
 
         }
@@ -1094,7 +505,7 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchInverters :" + e.Message.ToString());
-                throw;
+                return null;
             }
 
         }
@@ -1123,7 +534,7 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchSunlightMeter :" + e.Message.ToString());
-                throw;
+                return null;
             }
         }
 
@@ -1143,7 +554,8 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            CS1("日照計 dataNo: " + dataNo);
+            var str = string.Format("日照計 dataNo:{0}:{1}", dataNo, startDatetime);
+            CS1(str);
             try
             {
                 var l = new List<dtoSunlight>();
@@ -1173,7 +585,6 @@ namespace Partner
 
                         if (p1.mateWarn != "")
                         {
-                            // b.DEBUG = p1.mateWarn;
                             var err = new dtoError();
                             err.Guid = Guid.NewGuid();
                             err.Collector_Guid = CollectorId;
@@ -1184,10 +595,7 @@ namespace Partner
                             err.UploadTime = DateTime.Parse(up);
                             await toError(err);
                         }
-                        // else
-                        // {
-                        //     b.DEBUG = "";
-                        // }
+
                         l.Add(b);
                     }
                 }
@@ -1197,7 +605,6 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchSunPower : " + e.Message.ToString());
-                throw;
             }
         }
 
@@ -1205,25 +612,20 @@ namespace Partner
         {
             try
             {
-                using (var cn = new SqlConnection(connSolar))
+                using (var cn = new SqlConnection(connBill))
                 {
                     foreach (var p in bsp)
                     {
-                        // string insertQuery = @"INSERT INTO BillionwattsSunshine (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG) " +
-                        // "VALUES (@Guid, @Collector_Guid, @UploadTime , @Sort, @TValues , @DEBUG )";
-
-                        // await cn.ExecuteAsync(insertQuery, p);
-
                         string updtaeQuery = "";
                         if (times == 1)
                         {
-                            updtaeQuery = string.Format("update BillionwattsPower set Sunshine = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
+                            updtaeQuery = string.Format("update RawPower set Sunshine = {0} where datatimeR = '{1}' and Collector_Guid = '{2}';"
                                                    , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
 
                         }
                         else
                         {
-                            updtaeQuery = string.Format("update BillionwattsPower set Sunshine = (Sunshine + {0}) / {3} where UploadTime = '{1}' and Collector_Guid = '{2}';"
+                            updtaeQuery = string.Format("update RawPower set Sunshine = (Sunshine + {0}) / {3} where datatimeR = '{1}' and Collector_Guid = '{2}';"
                                                    , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid, times);
 
                         }
@@ -1234,7 +636,6 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("toDBSunPower : " + e.Message.ToString());
-                throw;
             }
         }
 
@@ -1262,7 +663,7 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchTempSurface : " + e.Message.ToString());
-                throw;
+                return null;
             }
         }
 
@@ -1282,7 +683,8 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            CS1("環境溫度計 dataNo: " + dataNo);
+            var str = string.Format("環境溫度計 dataNo:{0}:{1}", dataNo, startDatetime);
+            CS1(str);
             try
             {
                 var l = new List<dtoTemperature>();
@@ -1319,7 +721,6 @@ namespace Partner
 
                         if (p1.mateWarn != "")
                         {
-                            // b.DEBUG = p1.mateWarn;
                             var err = new dtoError();
                             err.Guid = Guid.NewGuid();
                             err.Collector_Guid = CollectorId;
@@ -1330,11 +731,6 @@ namespace Partner
                             err.UploadTime = DateTime.Parse(up);
                             await toError(err);
                         }
-                        // else
-                        // {
-                        //     b.DEBUG = "";
-                        // }
-
                         l.Add(b);
                     }
                 }
@@ -1344,7 +740,6 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchTempSurfacePower : " + e.Message.ToString());
-                throw;
             }
         }
 
@@ -1352,15 +747,11 @@ namespace Partner
         {
             try
             {
-                using (var cn = new SqlConnection(connSolar))
+                using (var cn = new SqlConnection(connBill))
                 {
                     foreach (var p in bsp)
                     {
-                        // string insertQuery = @"INSERT INTO BillionwattsTemp (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
-                        //                     "VALUES (@Guid, @Collector_Guid, @UploadTime , @Sort, @TValues , @DEBUG )";
-                        // await cn.ExecuteAsync(insertQuery, p);
-
-                        string updtaeQuery = string.Format("update BillionwattsPower set TemperatureS = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
+                        string updtaeQuery = string.Format("update RawPower set TemperatureS = {0} where datatimeR = '{1}' and Collector_Guid = '{2}';"
                         , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
                         await cn.ExecuteAsync(updtaeQuery);
                     }
@@ -1369,7 +760,6 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("toDBTemp : " + e.Message.ToString());
-                throw;
             }
         }
 
@@ -1397,7 +787,7 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchTempBack : " + e.Message.ToString());
-                throw;
+                return null;
             }
         }
 
@@ -1417,7 +807,8 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            CS1("模組溫度計 dataNo: " + dataNo);
+            var str = string.Format("模組溫度計 dataNo:{0}:{1}", dataNo, startDatetime);
+            CS1(str);
             try
             {
                 var l = new List<dtoTemperature>();
@@ -1454,7 +845,6 @@ namespace Partner
 
                         if (p1.mateWarn != "")
                         {
-                            // b.DEBUG = p1.mateWarn;
                             var err = new dtoError();
                             err.Guid = Guid.NewGuid();
                             err.Collector_Guid = CollectorId;
@@ -1465,10 +855,6 @@ namespace Partner
                             err.UploadTime = DateTime.Parse(up);
                             await toError(err);
                         }
-                        // else
-                        // {
-                        //     b.DEBUG = "";
-                        // }
 
                         l.Add(b);
                     }
@@ -1479,7 +865,6 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchTempBackPower : " + e.Message.ToString());
-                throw;
             }
         }
 
@@ -1487,15 +872,11 @@ namespace Partner
         {
             try
             {
-                using (var cn = new SqlConnection(connSolar))
+                using (var cn = new SqlConnection(connBill))
                 {
                     foreach (var p in bsp)
                     {
-                        // string insertQuery = @"INSERT INTO BillionwattsTemp (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
-                        //                    "VALUES (@Guid, @Collector_Guid , @UploadTime , @Sort, @TValues ,@DEBUG )";
-                        // await cn.ExecuteAsync(insertQuery, p);
-
-                        string updtaeQuery = string.Format("update BillionwattsPower set TemperatureB = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
+                        string updtaeQuery = string.Format("update RawPower set TemperatureB = {0} where datatimeR = '{1}' and Collector_Guid = '{2}';"
                         , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
                         await cn.ExecuteAsync(updtaeQuery);
                     }
@@ -1504,7 +885,6 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("toDBTempBack : " + e.Message.ToString());
-                throw;
             }
         }
 
@@ -1532,7 +912,7 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchWind : " + e.Message.ToString());
-                throw;
+                return null;
             }
         }
 
@@ -1552,7 +932,8 @@ namespace Partner
             _Raw["para"] = _Para;
 
             string JsonString = JsonConvert.SerializeObject(_Raw);
-            CS1("風速計 dataNo: " + dataNo);
+            var str = string.Format("風速計 dataNo:{0}:{1}", dataNo, startDatetime);
+            CS1(str);
             try
             {
                 var l = new List<dtoWindP>();
@@ -1582,7 +963,6 @@ namespace Partner
 
                         if (p1.mateWarn != "")
                         {
-                            // b.DEBUG = p1.mateWarn;
                             var err = new dtoError();
                             err.Guid = Guid.NewGuid();
                             err.Collector_Guid = CollectorId;
@@ -1593,10 +973,6 @@ namespace Partner
                             err.UploadTime = DateTime.Parse(up);
                             await toError(err);
                         }
-                        // else
-                        // {
-                        //     b.DEBUG = "";
-                        // }
 
                         l.Add(b);
                     }
@@ -1607,7 +983,6 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("FetchWindPower : " + e.Message.ToString());
-                throw;
             }
         }
 
@@ -1615,15 +990,11 @@ namespace Partner
         {
             try
             {
-                using (var cn = new SqlConnection(connSolar))
+                using (var cn = new SqlConnection(connBill))
                 {
                     foreach (var p in bsp)
                     {
-                        // string insertQuery = @"INSERT INTO BillionwattsWind (Guid, Collector_Guid, UploadTime , Sort, TValues , DEBUG ) " +
-                        //                    "VALUES (@Guid, @Collector_Guid , @UploadTime , @Sort, @TValues ,@DEBUG )";
-                        // await cn.ExecuteAsync(insertQuery, p);
-
-                        string updtaeQuery = string.Format("update BillionwattsPower set Wind = {0} where UploadTime = '{1}' and Collector_Guid = '{2}';"
+                        string updtaeQuery = string.Format("update RawPower set Wind = {0} where datatimeR = '{1}' and Collector_Guid = '{2}';"
                         , p.TValues, p.UploadTime.ToString("yyyy-MM-dd HH:mm:ss.fff"), p.Collector_Guid);
                         await cn.ExecuteAsync(updtaeQuery);
                     }
@@ -1632,16 +1003,34 @@ namespace Partner
             catch (System.Exception e)
             {
                 Console.WriteLine("toDBWind : " + e.Message.ToString());
-                throw;
             }
         }
 
 
         #endregion
 
+        public static string NullToString(object value)
+        {
+            return value == null ? "" : value.ToString();
+        }
+
+        public static double NullToZero(object value)
+        {
+            try
+            {
+                return value == null ? 0.0 : double.Parse(value.ToString());
+            }
+            catch (System.Exception)
+            {
+
+                return 0.0;
+            }
+
+        }
+
         public static void CS1(string a)
         {
-            var str = string.Format("{0} Start , {1}", a, DateTime.Now.ToString("HH:mm:ss fff"));
+            var str = string.Format("{0} Start : {1}", DateTime.Now.ToString("HH:mm:ss fff"), a);
             Console.WriteLine(str);
         }
 

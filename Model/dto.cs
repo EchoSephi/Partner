@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 
-namespace Partner.Model
+namespace Bill.Model
 {
     public class Result1
     {
@@ -354,4 +354,8 @@ namespace Partner.Model
 
     }
 
+public class dtoDayPowerH
+        {
+            public double dayPowerH { get; set; }
+        }
 }
